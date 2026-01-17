@@ -1,25 +1,25 @@
 import Foundation
 
 // Provider selection enum
-enum TranscriptionProvider: String, CaseIterable, Codable {
+public enum TranscriptionProvider: String, CaseIterable, Codable {
     case openAI = "openai"
     case localWhisper = "local"
 
-    var displayName: String {
+    public var displayName: String {
         switch self {
         case .openAI: return "OpenAI API"
         case .localWhisper: return "Local Whisper"
         }
     }
 
-    var description: String {
+    public var description: String {
         switch self {
         case .openAI: return "Cloud-based, requires API key"
         case .localWhisper: return "On-device, private, no internet required"
         }
     }
 
-    var icon: String {
+    public var icon: String {
         switch self {
         case .openAI: return "cloud"
         case .localWhisper: return "desktopcomputer"
@@ -28,12 +28,13 @@ enum TranscriptionProvider: String, CaseIterable, Codable {
 }
 
 // Available Whisper models for local transcription
+// Note: large-v3-turbo is excluded because SwiftWhisper doesn't support its architecture yet
 enum WhisperModel: String, CaseIterable, Codable {
     case tiny = "tiny"
     case base = "base"
     case small = "small"
     case medium = "medium"
-    case largeTurbo = "large-v3-turbo"
+    case large = "large-v3"
 
     var displayName: String {
         switch self {
@@ -41,7 +42,7 @@ enum WhisperModel: String, CaseIterable, Codable {
         case .base: return "Base"
         case .small: return "Small"
         case .medium: return "Medium"
-        case .largeTurbo: return "Large Turbo"
+        case .large: return "Large"
         }
     }
 
@@ -59,7 +60,7 @@ enum WhisperModel: String, CaseIterable, Codable {
         case .base: return 148_000_000
         case .small: return 488_000_000
         case .medium: return 1_530_000_000
-        case .largeTurbo: return 1_620_000_000
+        case .large: return 3_090_000_000
         }
     }
 
@@ -75,7 +76,7 @@ enum WhisperModel: String, CaseIterable, Codable {
         case .base: return "Fast, good for clear audio"
         case .small: return "Balanced speed and accuracy"
         case .medium: return "High accuracy, slower"
-        case .largeTurbo: return "Best accuracy, optimized speed"
+        case .large: return "Best accuracy, slowest"
         }
     }
 }

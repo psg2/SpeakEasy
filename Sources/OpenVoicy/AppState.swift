@@ -4,18 +4,18 @@ import Foundation
 import SwiftData
 import SwiftUI
 
-enum RecordingState {
+public enum RecordingState {
     case idle
     case recording
     case processing
 }
 
 @MainActor
-class AppState: ObservableObject {
-    @Published var state: RecordingState = .idle
-    @Published var audioLevel: Float = 0.0
-    @Published var lastTranscription: String = ""
-    @Published var errorMessage: String?
+public class AppState: ObservableObject {
+    @Published public var state: RecordingState = .idle
+    @Published public var audioLevel: Float = 0.0
+    @Published public var lastTranscription: String = ""
+    @Published public var errorMessage: String?
 
     private let recorder = AudioRecorder()
     private let transcriber = TranscriptionService.shared
@@ -27,7 +27,7 @@ class AppState: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     private var recordingStartTime: Date?
 
-    init(modelContext: ModelContext) {
+    public init(modelContext: ModelContext) {
         self.modelContext = modelContext
         self.setupBindings()
         self.setupShortcut()
@@ -123,6 +123,11 @@ class AppState: ObservableObject {
 
     private func transcribeAndSave(temporaryURL: URL) async {
         let duration = recordingStartTime.map { Date().timeIntervalSince($0) }
+        let provider = settings.transcriptionProvider
+        let modelName: String? = switch provider {
+        case .openAI: "whisper-1"
+        case .localWhisper: settings.selectedWhisperModel.displayName
+        }
 
         do {
             let audioFileName = try audioStorage.saveAudio(from: temporaryURL)
@@ -132,18 +137,23 @@ class AppState: ObservableObject {
                 audioFileName: audioFileName,
                 durationSeconds: duration,
                 language: settings.language,
-                transcriptionStatus: .processing
+                transcriptionStatus: .processing,
+                provider: provider,
+                modelName: modelName
             )
             modelContext.insert(record)
             try modelContext.save()
 
+            let transcriptionStart = Date()
             let text = try await transcriber.transcribe(
                 audioFileURL: audioStorage.audioURL(for: audioFileName),
                 language: settings.language
             )
+            let transcriptionTime = Date().timeIntervalSince(transcriptionStart)
 
             record.updateText(text)
             record.transcriptionStatus = .completed
+            record.transcriptionTimeSeconds = transcriptionTime
             try modelContext.save()
 
             self.lastTranscription = text
@@ -183,13 +193,20 @@ class AppState: ObservableObject {
         try? modelContext.save()
 
         do {
+            let transcriptionStart = Date()
             let text = try await transcriber.transcribe(
                 audioFileURL: audioStorage.audioURL(for: audioFileName),
                 language: settings.language
             )
+            let transcriptionTime = Date().timeIntervalSince(transcriptionStart)
 
             record.updateText(text)
             record.transcriptionStatus = .completed
+            record.transcriptionTimeSeconds = transcriptionTime
+            record.provider = settings.transcriptionProvider
+            record.modelName = settings.transcriptionProvider == .openAI
+                ? "whisper-1"
+                : settings.selectedWhisperModel.displayName
             try? modelContext.save()
 
         } catch {

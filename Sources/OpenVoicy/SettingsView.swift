@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 enum SettingsTab: String, CaseIterable {
@@ -171,7 +172,7 @@ struct SettingsView: View {
                 }
             }
 
-            if selectedProvider == .openAI {
+            if self.selectedProvider == .openAI {
                 self.openAISettings
             } else {
                 self.localWhisperSettings
@@ -180,10 +181,10 @@ struct SettingsView: View {
     }
 
     private func providerOption(_ provider: TranscriptionProvider) -> some View {
-        Button(action: { selectedProvider = provider }) {
+        Button(action: { self.selectedProvider = provider }) {
             HStack {
-                Image(systemName: selectedProvider == provider ? "checkmark.circle.fill" : "circle")
-                    .foregroundColor(selectedProvider == provider ? .accentColor : .secondary)
+                Image(systemName: self.selectedProvider == provider ? "checkmark.circle.fill" : "circle")
+                    .foregroundColor(self.selectedProvider == provider ? .accentColor : .secondary)
                     .font(.title3)
 
                 Image(systemName: provider.icon)
@@ -202,24 +203,22 @@ struct SettingsView: View {
 
                 Spacer()
 
-                if provider == .openAI && !apiKey.isEmpty {
+                if provider == .openAI, !self.apiKey.isEmpty {
                     Image(systemName: "checkmark.seal.fill")
                         .foregroundColor(.green)
-                } else if provider == .localWhisper && modelManager.isModelDownloaded(selectedModel) {
+                } else if provider == .localWhisper, self.modelManager.isModelDownloaded(self.selectedModel) {
                     Image(systemName: "checkmark.seal.fill")
                         .foregroundColor(.green)
                 }
             }
             .padding(12)
-            .background(selectedProvider == provider ? Color.accentColor.opacity(0.1) : Color.clear)
+            .background(self.selectedProvider == provider ? Color.accentColor.opacity(0.1) : Color.clear)
             .cornerRadius(8)
             .overlay(
                 RoundedRectangle(cornerRadius: 8)
                     .stroke(
-                        selectedProvider == provider ? Color.accentColor : Color.secondary.opacity(0.2),
-                        lineWidth: 1
-                    )
-            )
+                        self.selectedProvider == provider ? Color.accentColor : Color.secondary.opacity(0.2),
+                        lineWidth: 1))
         }
         .buttonStyle(.plain)
     }
@@ -235,7 +234,7 @@ struct SettingsView: View {
                     .frame(width: 220)
             }
 
-            if !apiKey.isEmpty {
+            if !self.apiKey.isEmpty {
                 HStack {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundColor(.green)
@@ -249,28 +248,66 @@ struct SettingsView: View {
     }
 
     private var localWhisperSettings: some View {
-        VStack(spacing: 20) {
-            self.settingsCard("Model Selection") {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Text("Model Selection")
+                    .font(.headline)
+
+                Spacer()
+
+                Button(action: { self.openModelsFolder() }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "folder")
+                        Text("Show in Finder")
+                    }
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                }
+                .buttonStyle(.plain)
+            }
+
+            VStack(spacing: 12) {
                 VStack(spacing: 8) {
                     ForEach(WhisperModel.allCases, id: \.self) { model in
                         self.modelOption(model)
                     }
                 }
-            }
 
-            if !modelManager.isModelDownloaded(selectedModel) {
-                self.modelDownloadCard
-            } else {
-                self.modelReadyCard
+                if let error = currentModelError {
+                    HStack {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundColor(.orange)
+                        Text(error)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Spacer()
+                    }
+                }
             }
+            .padding(16)
+            .background(Color.secondary.opacity(0.06))
+            .cornerRadius(10)
         }
     }
 
+    private func openModelsFolder() {
+        let url = self.modelManager.modelsDirectory
+        try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+        NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: url.path)
+    }
+
+    private var currentModelError: String? {
+        if case let .error(message) = modelManager.downloadStatus[selectedModel] {
+            return message
+        }
+        return nil
+    }
+
     private func modelOption(_ model: WhisperModel) -> some View {
-        Button(action: { selectedModel = model }) {
+        Button(action: { self.selectedModel = model }) {
             HStack {
-                Image(systemName: selectedModel == model ? "checkmark.circle.fill" : "circle")
-                    .foregroundColor(selectedModel == model ? .accentColor : .secondary)
+                Image(systemName: self.selectedModel == model ? "checkmark.circle.fill" : "circle")
+                    .foregroundColor(self.selectedModel == model ? .accentColor : .secondary)
 
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 8) {
@@ -293,103 +330,72 @@ struct SettingsView: View {
 
                 Spacer()
 
-                if modelManager.isModelDownloaded(model) {
-                    Image(systemName: "checkmark.seal.fill")
-                        .foregroundColor(.green)
-                } else if case .downloading(let progress) = modelManager.downloadStatus[model] {
-                    ProgressView(value: progress)
-                        .frame(width: 60)
-                }
+                self.modelActionButton(for: model)
             }
             .padding(10)
-            .background(selectedModel == model ? Color.accentColor.opacity(0.1) : Color.clear)
+            .background(self.selectedModel == model ? Color.accentColor.opacity(0.1) : Color.clear)
             .cornerRadius(6)
         }
         .buttonStyle(.plain)
     }
 
-    private var modelDownloadCard: some View {
-        self.settingsCard("Download Model") {
-            VStack(spacing: 16) {
-                HStack {
-                    Image(systemName: "arrow.down.circle")
-                        .font(.title2)
-                        .foregroundColor(.accentColor)
+    @ViewBuilder
+    private func modelActionButton(for model: WhisperModel) -> some View {
+        let status = self.modelManager.downloadStatus[model] ?? .notDownloaded
 
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Download \(selectedModel.displayName) Model")
-                            .font(.body)
-                            .fontWeight(.medium)
-                        Text("Size: \(selectedModel.sizeDescription)")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-
-                    Spacer()
-                }
-
-                if case .downloading(let progress) = modelManager.downloadStatus[selectedModel] {
-                    VStack(spacing: 8) {
-                        ProgressView(value: progress)
-                        HStack {
-                            Text("Downloading... \(Int(progress * 100))%")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            Spacer()
-                            Button("Cancel") {
-                                modelManager.cancelDownload()
-                            }
-                            .font(.caption)
-                        }
-                    }
-                } else if case .error(let message) = modelManager.downloadStatus[selectedModel] {
-                    HStack {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundColor(.red)
-                        Text(message)
-                            .font(.caption)
-                            .foregroundColor(.red)
-                            .lineLimit(2)
-                        Spacer()
-                    }
-
-                    Button("Retry Download") {
-                        modelManager.downloadModel(selectedModel)
-                    }
-                    .buttonStyle(.borderedProminent)
-                } else {
-                    Button("Download Model") {
-                        modelManager.downloadModel(selectedModel)
-                    }
-                    .buttonStyle(.borderedProminent)
-                }
-            }
-        }
-    }
-
-    private var modelReadyCard: some View {
-        self.settingsCard("Model Status") {
-            HStack {
+        switch status {
+        case .downloaded:
+            HStack(spacing: 8) {
                 Image(systemName: "checkmark.circle.fill")
-                    .font(.title2)
                     .foregroundColor(.green)
 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("\(selectedModel.displayName) model ready")
-                        .font(.body)
-                        .fontWeight(.medium)
-                    Text("Local transcription is available")
+                Button(action: { try? self.modelManager.deleteModel(model) }) {
+                    Image(systemName: "trash")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
-
-                Spacer()
-
-                Button("Delete") {
-                    try? modelManager.deleteModel(selectedModel)
-                }
-                .foregroundColor(.red)
+                .buttonStyle(.plain)
+                .help("Delete model")
             }
+
+        case let .downloading(progress):
+            HStack(spacing: 8) {
+                ProgressView(value: progress)
+                    .frame(width: 60)
+
+                Text("\(Int(progress * 100))%")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .frame(width: 32, alignment: .trailing)
+
+                Button(action: { self.modelManager.cancelDownload() }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundColor(.secondary)
+                }
+                .buttonStyle(.plain)
+                .help("Cancel download")
+            }
+
+        case .notDownloaded:
+            Button(action: { self.modelManager.downloadModel(model) }) {
+                Image(systemName: "arrow.down.circle")
+                    .font(.title3)
+                    .foregroundColor(.accentColor)
+            }
+            .buttonStyle(.plain)
+            .disabled(self.modelManager.isDownloading)
+            .opacity(self.modelManager.isDownloading ? 0.5 : 1)
+            .help("Download model")
+
+        case .error:
+            Button(action: { self.modelManager.downloadModel(model) }) {
+                Image(systemName: "arrow.clockwise.circle")
+                    .font(.title3)
+                    .foregroundColor(.orange)
+            }
+            .buttonStyle(.plain)
+            .disabled(self.modelManager.isDownloading)
+            .help("Retry download")
         }
     }
 
@@ -419,12 +425,59 @@ struct SettingsView: View {
 
                     Divider()
 
-                    Text("A simple, open-source voice transcription app for macOS using OpenAI's Whisper API or local Whisper models.")
+                    Text(
+                        "A simple, open-source voice transcription app for macOS using OpenAI's Whisper API or local Whisper models.")
                         .font(.body)
                         .foregroundColor(.secondary)
                 }
             }
+
+            self.settingsCard("Diagnostics") {
+                VStack(alignment: .leading, spacing: 12) {
+                    self.settingsRow(
+                        title: "View Logs",
+                        description: "Open log file with detailed timing info")
+                    {
+                        HStack(spacing: 8) {
+                            Button(action: { FileLogger.shared.openLogFile() }) {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "doc.text")
+                                    Text("Open Log")
+                                }
+                            }
+                            .buttonStyle(.bordered)
+
+                            Button(action: { FileLogger.shared.revealLogsInFinder() }) {
+                                Image(systemName: "folder")
+                            }
+                            .buttonStyle(.bordered)
+                            .help("Reveal in Finder")
+                        }
+                    }
+
+                    Divider()
+
+                    self.settingsRow(
+                        title: "Audio Files",
+                        description: "Open the folder containing recorded audio files")
+                    {
+                        Button(action: self.openAudioFolder) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "folder")
+                                Text("Open Folder")
+                            }
+                        }
+                        .buttonStyle(.bordered)
+                    }
+                }
+            }
         }
+    }
+
+    private func openAudioFolder() {
+        let url = AudioStorageManager.shared.recordingsDirectory
+        try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+        NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: url.path)
     }
 
     // MARK: - Helper Views

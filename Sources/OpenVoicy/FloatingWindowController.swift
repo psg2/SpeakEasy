@@ -1,10 +1,14 @@
 import AppKit
 import SwiftUI
 
-class FloatingWindowController: NSObject {
+public class FloatingWindowController: NSObject {
     var overlayWindow: NSWindow?
 
-    func showOverlay(appState: AppState) {
+    public override init() {
+        super.init()
+    }
+
+    public func showOverlay(appState: AppState) {
         if self.overlayWindow == nil {
             let overlayView = RecordingOverlayView(appState: appState)
             let hostingController = NSHostingController(rootView: overlayView)
@@ -36,7 +40,7 @@ class FloatingWindowController: NSObject {
         self.overlayWindow?.orderFront(nil)
     }
 
-    func hideOverlay() {
+    public func hideOverlay() {
         self.overlayWindow?.orderOut(nil)
     }
 }

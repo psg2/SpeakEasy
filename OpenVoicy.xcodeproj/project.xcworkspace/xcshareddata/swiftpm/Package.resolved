@@ -1,0 +1,15 @@
+{
+  "originHash" : "cdcc06e9c2becd8a67a6746eb9d9846c155b0d56d8e0d068713aa400c170795f",
+  "pins" : [
+    {
+      "identity" : "swiftwhisper",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/exPHAT/SwiftWhisper",
+      "state" : {
+        "branch" : "master",
+        "revision" : "c340197966ebd264f3135d3955874b40f8ed58bc"
+      }
+    }
+  ],
+  "version" : 3
+}
