@@ -146,7 +146,12 @@ struct HistoryView: View {
     }
 
     private var homeDetailView: some View {
-        VStack(spacing: 24) {
+        VStack(spacing: 0) {
+            if !transcriptions.isEmpty {
+                statsBar
+                    .padding()
+            }
+
             Spacer()
 
             Image(systemName: "waveform.circle.fill")
@@ -156,6 +161,7 @@ struct HistoryView: View {
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 ))
+                .padding(.bottom, 24)
 
             VStack(spacing: 8) {
                 Text("Hold \(shortcutDisplayText) to dictate")
@@ -167,21 +173,58 @@ struct HistoryView: View {
                     .foregroundColor(.secondary)
             }
 
-            if !transcriptions.isEmpty {
-                VStack(spacing: 4) {
-                    Text("\(transcriptions.count) transcriptions")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    Text("\(totalWordCount) words total")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-                .padding(.top, 8)
-            }
-
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var statsBar: some View {
+        HStack(spacing: 16) {
+            Spacer()
+
+            statItem(icon: "doc.text.fill", value: "\(transcriptions.count)", label: "transcriptions", color: .blue)
+
+            Divider()
+                .frame(height: 24)
+
+            statItem(icon: "textformat.size", value: "\(totalWordCount)", label: "words", color: .green)
+
+            if let avgWPM = averageWordsPerMinute {
+                Divider()
+                    .frame(height: 24)
+
+                statItem(icon: "speedometer", value: "\(avgWPM)", label: "WPM", color: .orange)
+            }
+        }
+        .padding(.horizontal)
+        .padding(.vertical, 8)
+        .background(Color.secondary.opacity(0.08))
+        .cornerRadius(12)
+    }
+
+    private func statItem(icon: String, value: String, label: String, color: Color) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: icon)
+                .foregroundColor(color)
+                .font(.body)
+            Text(value)
+                .font(.title3)
+                .fontWeight(.semibold)
+            Text(label)
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+        }
+    }
+
+    private var averageWordsPerMinute: Int? {
+        let recordsWithDuration = transcriptions.filter { ($0.durationSeconds ?? 0) > 0 }
+        guard !recordsWithDuration.isEmpty else { return nil }
+
+        let totalWords = recordsWithDuration.reduce(0) { $0 + $1.wordCount }
+        let totalMinutes = recordsWithDuration.reduce(0.0) { $0 + ($1.durationSeconds ?? 0) } / 60.0
+
+        guard totalMinutes > 0 else { return nil }
+        return Int(Double(totalWords) / totalMinutes)
     }
 
     private var totalWordCount: Int {
