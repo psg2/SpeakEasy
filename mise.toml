@@ -18,4 +18,4 @@ run = "open /Users/arado/Library/Developer/Xcode/DerivedData/OpenVoicy-ckkkjzkfj
 alias = "o"
 
 [shell_alias]
-dev = "./compile_and_run.sh"
+dev = "./scripts/compile_and_run.sh"
