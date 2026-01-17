@@ -1,6 +1,7 @@
 import AppKit
 import Combine
 import Foundation
+import SwiftData
 import SwiftUI
 
 enum RecordingState {
@@ -20,10 +21,14 @@ class AppState: ObservableObject {
     private let transcriber = TranscriptionService.shared
     private let accessibility = AccessibilityService.shared
     private let settings = SettingsManager.shared
+    private let audioStorage = AudioStorageManager.shared
 
+    private var modelContext: ModelContext
     private var cancellables = Set<AnyCancellable>()
+    private var recordingStartTime: Date?
 
-    init() {
+    init(modelContext: ModelContext) {
+        self.modelContext = modelContext
         self.setupBindings()
         self.setupShortcut()
     }
@@ -70,15 +75,14 @@ class AppState: ObservableObject {
             return
         }
 
-        // Reset state
         self.errorMessage = nil
         self.lastTranscription = ""
+        self.recordingStartTime = Date()
 
         SoundManager.shared.playStartSound()
         self.state = .recording
         self.recorder.startRecording()
 
-        // Register Escape to cancel
         GlobalShortcutManager.shared.registerEscapeShortcut()
     }
 
@@ -97,7 +101,7 @@ class AppState: ObservableObject {
             }
 
             Task {
-                await self.transcribe(url: url)
+                await self.transcribeAndSave(temporaryURL: url)
             }
         }
     }
@@ -106,21 +110,41 @@ class AppState: ObservableObject {
         GlobalShortcutManager.shared.unregisterEscapeShortcut()
         self.recorder.stopRecording()
         self.state = .idle
+        self.recordingStartTime = nil
     }
 
-    private func transcribe(url: URL) async {
+    private func transcribeAndSave(temporaryURL: URL) async {
+        let duration = recordingStartTime.map { Date().timeIntervalSince($0) }
+
         do {
-            let text = try await transcriber.transcribe(audioFileURL: url, language: self.settings.language)
+            let audioFileName = try audioStorage.saveAudio(from: temporaryURL)
+
+            let record = TranscriptionRecord(
+                text: "",
+                audioFileName: audioFileName,
+                durationSeconds: duration,
+                language: settings.language,
+                transcriptionStatus: .processing
+            )
+            modelContext.insert(record)
+            try modelContext.save()
+
+            let text = try await transcriber.transcribe(
+                audioFileURL: audioStorage.audioURL(for: audioFileName),
+                language: settings.language
+            )
+
+            record.updateText(text)
+            record.transcriptionStatus = .completed
+            try modelContext.save()
+
             self.lastTranscription = text
 
-            // Output handling
             self.accessibility.copyToClipboard(text)
 
-            // Ensure app is hidden so focus returns to previous app before typing
             NSApp.hide(nil)
 
-            // Short delay to allow OS to switch focus
-            try? await Task.sleep(nanoseconds: 100 * 1_000_000) // 100ms
+            try? await Task.sleep(nanoseconds: 100 * 1_000_000)
 
             if self.accessibility.checkPermissions() {
                 self.accessibility.typeText(text)
@@ -130,12 +154,40 @@ class AppState: ObservableObject {
 
             self.state = .idle
 
-            // Cleanup
-            try? FileManager.default.removeItem(at: url)
+            try? FileManager.default.removeItem(at: temporaryURL)
 
         } catch {
             self.errorMessage = "Transcription failed: \(error.localizedDescription)"
             self.state = .idle
+            try? FileManager.default.removeItem(at: temporaryURL)
+        }
+    }
+
+    func retryTranscription(record: TranscriptionRecord) async {
+        guard let audioFileName = record.audioFileName,
+              audioStorage.audioFileExists(fileName: audioFileName)
+        else {
+            self.errorMessage = "Audio file not found for retry."
+            return
+        }
+
+        record.transcriptionStatus = .processing
+        try? modelContext.save()
+
+        do {
+            let text = try await transcriber.transcribe(
+                audioFileURL: audioStorage.audioURL(for: audioFileName),
+                language: settings.language
+            )
+
+            record.updateText(text)
+            record.transcriptionStatus = .completed
+            try? modelContext.save()
+
+        } catch {
+            record.transcriptionStatus = .failed
+            try? modelContext.save()
+            self.errorMessage = "Retry failed: \(error.localizedDescription)"
         }
     }
 }
