@@ -10,7 +10,6 @@ activate_aggressive = true
 [tasks.build]
 description = "Build the OpenVoicy application"
 run = "xcodebuild -project OpenVoicy.xcodeproj -scheme OpenVoicy -configuration Debug build CODE_SIGN_IDENTITY=\"\" CODE_SIGNING_REQUIRED=NO"
-# run = "xcodebuild -project OpenVoicy.xcodeproj -scheme OpenVoicy -configuration Debug -derivedDataPath build"
 alias = "b"
 
 [tasks.open]
@@ -18,6 +17,5 @@ description = "Open the built OpenVoicy application"
 run = "open /Users/arado/Library/Developer/Xcode/DerivedData/OpenVoicy-ckkkjzkfjvlqatfgihmivypagacj/Build/Products/Debug/OpenVoicy.app"
 alias = "o"
 
-# [shell_alias]
-# dev = "npm run tauri dev"
-# build = "npm run tauri build"
+[shell_alias]
+dev = "./compile_and_run.sh"
