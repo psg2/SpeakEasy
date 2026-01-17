@@ -3,6 +3,7 @@ pkl = "latest"
 hk = "latest"
 typos = "latest"
 swiftlint = "latest"
+"asdf:swiftformat" = "latest"
 
 [settings]
 activate_aggressive = true

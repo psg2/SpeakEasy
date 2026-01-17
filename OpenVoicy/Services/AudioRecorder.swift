@@ -1,6 +1,6 @@
-import Foundation
 import AVFoundation
 import Combine
+import Foundation
 
 class AudioRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate {
     private var audioRecorder: AVAudioRecorder?
@@ -13,7 +13,7 @@ class AudioRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate {
 
     override init() {
         super.init()
-        setupSession()
+        self.setupSession()
     }
 
     private func setupSession() {
@@ -39,31 +39,31 @@ class AudioRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate {
             AVNumberOfChannelsKey: 1,
             AVLinearPCMBitDepthKey: 16,
             AVLinearPCMIsBigEndianKey: false,
-            AVLinearPCMIsFloatKey: false
+            AVLinearPCMIsFloatKey: false,
         ]
 
         do {
-            audioRecorder = try AVAudioRecorder(url: fileURL, settings: settings)
-            audioRecorder?.delegate = self
-            audioRecorder?.isMeteringEnabled = true
-            audioRecorder?.record()
+            self.audioRecorder = try AVAudioRecorder(url: fileURL, settings: settings)
+            self.audioRecorder?.delegate = self
+            self.audioRecorder?.isMeteringEnabled = true
+            self.audioRecorder?.record()
 
-            isRecording = true
-            startMetering()
+            self.isRecording = true
+            self.startMetering()
         } catch {
             print("Failed to start recording: \(error)")
         }
     }
 
     func stopRecording() {
-        audioRecorder?.stop()
-        stopMetering()
-        isRecording = false
+        self.audioRecorder?.stop()
+        self.stopMetering()
+        self.isRecording = false
     }
 
     private func startMetering() {
-        timer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { [weak self] _ in
-            guard let self = self, let recorder = self.audioRecorder else { return }
+        self.timer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { [weak self] _ in
+            guard let self, let recorder = self.audioRecorder else { return }
             recorder.updateMeters()
 
             // Normalize level (0..1)
@@ -78,16 +78,16 @@ class AudioRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate {
     }
 
     private func stopMetering() {
-        timer?.invalidate()
-        timer = nil
-        audioLevel = 0
+        self.timer?.invalidate()
+        self.timer = nil
+        self.audioLevel = 0
     }
 
     func audioRecorderDidFinishRecording(_ recorder: AVAudioRecorder, successfully flag: Bool) {
         if flag {
-            onRecordingFinished?(recorder.url)
+            self.onRecordingFinished?(recorder.url)
         } else {
-            onRecordingFinished?(nil)
+            self.onRecordingFinished?(nil)
         }
     }
 }

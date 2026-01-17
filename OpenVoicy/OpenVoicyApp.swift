@@ -7,12 +7,12 @@ struct OpenVoicyApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView(appState: appState)
-                .onChange(of: appState.state) { newState in
+            ContentView(appState: self.appState)
+                .onChange(of: self.appState.state) { newState in
                     if newState == .idle {
-                        overlayController.hideOverlay()
+                        self.overlayController.hideOverlay()
                     } else {
-                        overlayController.showOverlay(appState: appState)
+                        self.overlayController.showOverlay(appState: self.appState)
                     }
                 }
         }

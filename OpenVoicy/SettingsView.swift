@@ -13,18 +13,18 @@ struct SettingsView: View {
     var body: some View {
         Form {
             Section(header: Text("OpenAI Settings")) {
-                SecureField("API Key", text: $apiKey)
+                SecureField("API Key", text: self.$apiKey)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
 
-                TextField("Language (Optional, e.g. 'en')", text: $language)
+                TextField("Language (Optional, e.g. 'en')", text: self.$language)
             }
 
             Section(header: Text("Shortcuts")) {
-                ShortcutInputView(keyCode: $shortcutKeyCode, modifiers: $shortcutModifierFlags)
+                ShortcutInputView(keyCode: self.$shortcutKeyCode, modifiers: self.$shortcutModifierFlags)
             }
 
             Section(header: Text("Behavior")) {
-                Picker("Recording Mode", selection: $recordingMode) {
+                Picker("Recording Mode", selection: self.$recordingMode) {
                     Text("Press to Toggle").tag("pressToToggle")
                     Text("Hold to Record").tag("holdToRecord")
                 }
@@ -33,18 +33,18 @@ struct SettingsView: View {
         .padding()
         .frame(width: 400, height: 300)
         .onAppear {
-            loadSettings()
+            self.loadSettings()
         }
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button("Cancel") {
-                    dismiss()
+                    self.dismiss()
                 }
             }
             ToolbarItem(placement: .confirmationAction) {
                 Button("Save") {
-                    saveSettings()
-                    dismiss()
+                    self.saveSettings()
+                    self.dismiss()
                 }
             }
         }
@@ -66,15 +66,15 @@ struct SettingsView: View {
 
         // Update shortcut only if changed
         if settings.shortcutKeyCode != self.shortcutKeyCode ||
-            settings.shortcutModifierFlags != self.shortcutModifierFlags {
+            settings.shortcutModifierFlags != self.shortcutModifierFlags
+        {
             settings.shortcutKeyCode = self.shortcutKeyCode
             settings.shortcutModifierFlags = self.shortcutModifierFlags
 
             // Re-register
             GlobalShortcutManager.shared.registerShortcut(
                 key: self.shortcutKeyCode,
-                modifiers: self.shortcutModifierFlags
-            )
+                modifiers: self.shortcutModifierFlags)
         }
 
         settings.recordingMode = self.recordingMode

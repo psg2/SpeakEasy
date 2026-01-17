@@ -1,5 +1,5 @@
-import Foundation
 import AVFoundation
+import Foundation
 
 class SoundManager {
     static let shared = SoundManager()
@@ -8,25 +8,25 @@ class SoundManager {
     private let player = AVAudioPlayerNode()
 
     init() {
-        engine.attach(player)
-        let format = engine.outputNode.inputFormat(forBus: 0)
-        engine.connect(player, to: engine.outputNode, format: format)
+        self.engine.attach(self.player)
+        let format = self.engine.outputNode.inputFormat(forBus: 0)
+        self.engine.connect(self.player, to: self.engine.outputNode, format: format)
         do {
-            try engine.start()
+            try self.engine.start()
         } catch {
             print("Audio engine start error: \(error)")
         }
     }
 
     func playStartSound() {
-        playTone(frequency: 600, duration: 0.08)
+        self.playTone(frequency: 600, duration: 0.08)
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
             self.playTone(frequency: 800, duration: 0.1)
         }
     }
 
     func playStopSound() {
-        playTone(frequency: 800, duration: 0.08)
+        self.playTone(frequency: 800, duration: 0.08)
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
             self.playTone(frequency: 600, duration: 0.1)
         }
@@ -34,7 +34,7 @@ class SoundManager {
 
     private func playTone(frequency: Double, duration: Double) {
         // Use the format of the engine's output node to match channel count and sample rate
-        let format = engine.outputNode.inputFormat(forBus: 0)
+        let format = self.engine.outputNode.inputFormat(forBus: 0)
         let sampleRate = format.sampleRate
         let channelCount = Int(format.channelCount)
         let frameCount = Int(duration * sampleRate)
@@ -67,7 +67,7 @@ class SoundManager {
             }
         }
 
-        player.scheduleBuffer(buffer, at: nil, options: [], completionHandler: nil)
-        if !player.isPlaying { player.play() }
+        self.player.scheduleBuffer(buffer, at: nil, options: [], completionHandler: nil)
+        if !self.player.isPlaying { self.player.play() }
     }
 }

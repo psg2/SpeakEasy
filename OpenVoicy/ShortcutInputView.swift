@@ -14,17 +14,17 @@ struct ShortcutInputView: View {
                 Text("Global Shortcut")
                 Spacer()
                 Button(action: {
-                    if isRecording {
-                        stopRecording()
+                    if self.isRecording {
+                        self.stopRecording()
                     } else {
-                        startRecording()
+                        self.startRecording()
                     }
                 }, label: {
-                    Text(displayText)
+                    Text(self.displayText)
                         .frame(minWidth: 100)
                         .padding(5)
-                        .background(isRecording ? Color.accentColor : Color.secondary.opacity(0.2))
-                        .foregroundColor(isRecording ? .white : .primary)
+                        .background(self.isRecording ? Color.accentColor : Color.secondary.opacity(0.2))
+                        .foregroundColor(self.isRecording ? .white : .primary)
                         .cornerRadius(6)
                 })
                 .buttonStyle(PlainButtonStyle())
@@ -37,33 +37,34 @@ struct ShortcutInputView: View {
             }
         }
         .onDisappear {
-            stopRecording()
+            self.stopRecording()
         }
     }
 
     private var displayText: String {
-        if isRecording {
+        if self.isRecording {
             return "Press keys..."
         }
-        return KeyboardUtils.string(for: keyCode, modifiers: modifiers)
+        return KeyboardUtils.string(for: self.keyCode, modifiers: self.modifiers)
     }
 
     private func startRecording() {
-        isRecording = true
-        errorMessage = nil
+        self.isRecording = true
+        self.errorMessage = nil
 
-        monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+        self.monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
             // Ignore if just a modifier key is pressed (waiting for the actual key)
             if event.modifierFlags.contains(.command) ||
-               event.modifierFlags.contains(.shift) ||
-               event.modifierFlags.contains(.option) ||
-               event.modifierFlags.contains(.control) {
-               // Continue waiting
+                event.modifierFlags.contains(.shift) ||
+                event.modifierFlags.contains(.option) ||
+                event.modifierFlags.contains(.control)
+            {
+                // Continue waiting
             }
 
             // Allow Escape to cancel recording
             if event.keyCode == 53 { // kVK_Escape
-                stopRecording()
+                self.stopRecording()
                 return nil
             }
 
@@ -77,8 +78,8 @@ struct ShortcutInputView: View {
             case .valid:
                 self.keyCode = carbonKey
                 self.modifiers = carbonModifiers
-                stopRecording()
-            case .invalid(let reason):
+                self.stopRecording()
+            case let .invalid(reason):
                 self.errorMessage = reason
                 // Keep recording? Or stop?
                 // Usually user wants to try again immediately.
@@ -90,8 +91,8 @@ struct ShortcutInputView: View {
     }
 
     private func stopRecording() {
-        isRecording = false
-        if let monitor = monitor {
+        self.isRecording = false
+        if let monitor {
             NSEvent.removeMonitor(monitor)
             self.monitor = nil
         }

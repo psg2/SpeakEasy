@@ -10,16 +10,16 @@ struct ContentView: View {
                 .font(.largeTitle)
                 .fontWeight(.bold)
 
-            Text(statusText)
+            Text(self.statusText)
                 .font(.headline)
-                .foregroundColor(statusColor)
+                .foregroundColor(self.statusColor)
 
-            if !appState.lastTranscription.isEmpty {
+            if !self.appState.lastTranscription.isEmpty {
                 VStack(alignment: .leading) {
                     Text("Last Transcription:")
                         .font(.caption)
                         .foregroundColor(.gray)
-                    Text(appState.lastTranscription)
+                    Text(self.appState.lastTranscription)
                         .padding()
                         .background(Color.gray.opacity(0.1))
                         .cornerRadius(8)
@@ -34,21 +34,21 @@ struct ContentView: View {
 
             HStack {
                 Button(action: {
-                    appState.toggleRecording()
+                    self.appState.toggleRecording()
                 }, label: {
                     HStack {
-                        Text(appState.state == .recording ? "Stop Recording" : "Start Recording")
-                        Image(systemName: appState.state == .recording ? "stop.circle.fill" : "mic.circle.fill")
+                        Text(self.appState.state == .recording ? "Stop Recording" : "Start Recording")
+                        Image(systemName: self.appState.state == .recording ? "stop.circle.fill" : "mic.circle.fill")
                     }
                 })
                 .keyboardShortcut(" ", modifiers: .option) // Local shortcut for testing
 
                 Button(action: {
-                    showSettings = true
+                    self.showSettings = true
                 }, label: {
                     Image(systemName: "gear")
                 })
-                .sheet(isPresented: $showSettings) {
+                .sheet(isPresented: self.$showSettings) {
                     SettingsView()
                 }
             }
@@ -58,18 +58,18 @@ struct ContentView: View {
     }
 
     var statusText: String {
-        switch appState.state {
-        case .idle: return "Ready"
-        case .recording: return "Recording..."
-        case .processing: return "Processing..."
+        switch self.appState.state {
+        case .idle: "Ready"
+        case .recording: "Recording..."
+        case .processing: "Processing..."
         }
     }
 
     var statusColor: Color {
-        switch appState.state {
-        case .idle: return .primary
-        case .recording: return .red
-        case .processing: return .orange
+        switch self.appState.state {
+        case .idle: .primary
+        case .recording: .red
+        case .processing: .orange
         }
     }
 }

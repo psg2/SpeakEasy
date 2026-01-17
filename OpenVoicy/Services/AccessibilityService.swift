@@ -1,6 +1,6 @@
-import Foundation
-import ApplicationServices
 import AppKit
+import ApplicationServices
+import Foundation
 
 class AccessibilityService {
     static let shared = AccessibilityService()
@@ -21,8 +21,8 @@ class AccessibilityService {
 
         for char in text {
             if let eventDown = CGEvent(keyboardEventSource: src, virtualKey: 0, keyDown: true),
-               let eventUp = CGEvent(keyboardEventSource: src, virtualKey: 0, keyDown: false) {
-
+               let eventUp = CGEvent(keyboardEventSource: src, virtualKey: 0, keyDown: false)
+            {
                 var charCode = Array(String(char).utf16)[0]
                 eventDown.keyboardSetUnicodeString(stringLength: 1, unicodeString: &charCode)
                 eventUp.keyboardSetUnicodeString(stringLength: 1, unicodeString: &charCode)

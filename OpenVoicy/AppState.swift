@@ -1,7 +1,7 @@
-import Foundation
-import Combine
-import SwiftUI
 import AppKit
+import Combine
+import Foundation
+import SwiftUI
 
 enum RecordingState {
     case idle
@@ -24,22 +24,21 @@ class AppState: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
 
     init() {
-        setupBindings()
-        setupShortcut()
+        self.setupBindings()
+        self.setupShortcut()
     }
 
     private func setupBindings() {
-        recorder.$audioLevel
+        self.recorder.$audioLevel
             .receive(on: RunLoop.main)
             .assign(to: \.audioLevel, on: self)
-            .store(in: &cancellables)
+            .store(in: &self.cancellables)
     }
 
     private func setupShortcut() {
         GlobalShortcutManager.shared.registerShortcut(
-            key: settings.shortcutKeyCode,
-            modifiers: settings.shortcutModifierFlags
-        )
+            key: self.settings.shortcutKeyCode,
+            modifiers: self.settings.shortcutModifierFlags)
 
         GlobalShortcutManager.shared.onShortcutTriggered = { [weak self] in
             Task { @MainActor in
@@ -55,29 +54,29 @@ class AppState: ObservableObject {
     }
 
     func toggleRecording() {
-        switch state {
+        switch self.state {
         case .idle:
-            startRecording()
+            self.startRecording()
         case .recording:
-            stopRecording()
+            self.stopRecording()
         case .processing:
             break // Ignore
         }
     }
 
     func startRecording() {
-        guard settings.hasApiKey else {
-            errorMessage = "Please set your OpenAI API Key in settings."
+        guard self.settings.hasApiKey else {
+            self.errorMessage = "Please set your OpenAI API Key in settings."
             return
         }
 
         // Reset state
-        errorMessage = nil
-        lastTranscription = ""
+        self.errorMessage = nil
+        self.lastTranscription = ""
 
         SoundManager.shared.playStartSound()
-        state = .recording
-        recorder.startRecording()
+        self.state = .recording
+        self.recorder.startRecording()
 
         // Register Escape to cancel
         GlobalShortcutManager.shared.registerEscapeShortcut()
@@ -87,11 +86,11 @@ class AppState: ObservableObject {
         GlobalShortcutManager.shared.unregisterEscapeShortcut()
 
         SoundManager.shared.playStopSound()
-        state = .processing
-        recorder.stopRecording()
+        self.state = .processing
+        self.recorder.stopRecording()
 
-        recorder.onRecordingFinished = { [weak self] url in
-            guard let self = self, let url = url else {
+        self.recorder.onRecordingFinished = { [weak self] url in
+            guard let self, let url else {
                 self?.state = .idle
                 self?.errorMessage = "Recording failed."
                 return
@@ -105,13 +104,13 @@ class AppState: ObservableObject {
 
     func cancelRecording() {
         GlobalShortcutManager.shared.unregisterEscapeShortcut()
-        recorder.stopRecording()
-        state = .idle
+        self.recorder.stopRecording()
+        self.state = .idle
     }
 
     private func transcribe(url: URL) async {
         do {
-            let text = try await transcriber.transcribe(audioFileURL: url, language: settings.language)
+            let text = try await transcriber.transcribe(audioFileURL: url, language: self.settings.language)
             self.lastTranscription = text
 
             // Output handling

@@ -1,9 +1,8 @@
-import Foundation
 import AppKit
 import Carbon
+import Foundation
 
-struct ShortcutValidator {
-
+enum ShortcutValidator {
     enum ValidationResult {
         case valid
         case invalid(reason: String)
@@ -11,17 +10,17 @@ struct ShortcutValidator {
 
     static func validate(keyCode: Int, modifiers: Int) -> ValidationResult {
         // Rule 1: Max 3 keys
-        if countKeys(modifiers: modifiers) > 3 {
+        if self.countKeys(modifiers: modifiers) > 3 {
             return .invalid(reason: "Shortcut must use 3 keys or fewer.")
         }
 
         // Rule 2: Include at least one modifier or non-alphanumeric key
-        if !isModifierPresent(modifiers) && !isNonAlphanumeric(keyCode) {
-             return .invalid(reason: "Shortcut must include a modifier or be a special key.")
+        if !self.isModifierPresent(modifiers), !self.isNonAlphanumeric(keyCode) {
+            return .invalid(reason: "Shortcut must include a modifier or be a special key.")
         }
 
         // Rule 3: Check reserved shortcuts
-        if isReserved(keyCode: keyCode, modifiers: modifiers) {
+        if self.isReserved(keyCode: keyCode, modifiers: modifiers) {
             return .invalid(reason: "This shortcut is reserved by the system.")
         }
 
@@ -38,17 +37,17 @@ struct ShortcutValidator {
     }
 
     private static func isModifierPresent(_ modifiers: Int) -> Bool {
-        return modifiers != 0
+        modifiers != 0
     }
 
     private static func isNonAlphanumeric(_ keyCode: Int) -> Bool {
-        return isFKey(keyCode) || isSpecialKey(keyCode)
+        self.isFKey(keyCode) || self.isSpecialKey(keyCode)
     }
 
     private static func isFKey(_ keyCode: Int) -> Bool {
         let fKeys = [
             kVK_F1, kVK_F2, kVK_F3, kVK_F4, kVK_F5, kVK_F6, kVK_F7, kVK_F8, kVK_F9, kVK_F10,
-            kVK_F11, kVK_F12, kVK_F13, kVK_F14, kVK_F15, kVK_F16, kVK_F17, kVK_F18, kVK_F19, kVK_F20
+            kVK_F11, kVK_F12, kVK_F13, kVK_F14, kVK_F15, kVK_F16, kVK_F17, kVK_F18, kVK_F19, kVK_F20,
         ]
         return fKeys.contains(keyCode)
     }
@@ -57,14 +56,14 @@ struct ShortcutValidator {
         let special = [
             kVK_PageUp, kVK_PageDown, kVK_Home, kVK_End, kVK_LeftArrow, kVK_RightArrow,
             kVK_UpArrow, kVK_DownArrow, kVK_ForwardDelete, kVK_Delete, kVK_Escape,
-            kVK_Tab, kVK_Return, kVK_Space
+            kVK_Tab, kVK_Return, kVK_Space,
         ]
         return special.contains(keyCode)
     }
 
     private static func isReserved(keyCode: Int, modifiers: Int) -> Bool {
-        return isMacOSReserved(keyCode: keyCode, modifiers: modifiers) ||
-               isWindowsReserved(keyCode: keyCode, modifiers: modifiers)
+        self.isMacOSReserved(keyCode: keyCode, modifiers: modifiers) ||
+            self.isWindowsReserved(keyCode: keyCode, modifiers: modifiers)
     }
 
     private static func isMacOSReserved(keyCode: Int, modifiers: Int) -> Bool {
@@ -77,27 +76,27 @@ struct ShortcutValidator {
         let reservedCmd = [
             kVK_ANSI_C, kVK_ANSI_V, kVK_ANSI_X, kVK_ANSI_Z, kVK_ANSI_A, kVK_ANSI_Q,
             kVK_ANSI_W, kVK_ANSI_R, kVK_ANSI_T, kVK_ANSI_S, kVK_ANSI_P, kVK_ANSI_N,
-            kVK_ANSI_M, kVK_ANSI_H, kVK_ANSI_F, kVK_ANSI_G, kVK_ANSI_B, kVK_ANSI_I, kVK_ANSI_U
+            kVK_ANSI_M, kVK_ANSI_H, kVK_ANSI_F, kVK_ANSI_G, kVK_ANSI_B, kVK_ANSI_I, kVK_ANSI_U,
         ]
-        if modifiers == cmd && reservedCmd.contains(keyCode) { return true }
+        if modifiers == cmd, reservedCmd.contains(keyCode) { return true }
 
-        if modifiers == cmdShift && [kVK_ANSI_Z, kVK_ANSI_G, kVK_ANSI_T, kVK_ANSI_F, kVK_ANSI_Q].contains(keyCode) {
+        if modifiers == cmdShift, [kVK_ANSI_Z, kVK_ANSI_G, kVK_ANSI_T, kVK_ANSI_F, kVK_ANSI_Q].contains(keyCode) {
             return true
         }
 
-        if modifiers == cmd && keyCode == kVK_ANSI_Comma { return true }
+        if modifiers == cmd, keyCode == kVK_ANSI_Comma { return true }
 
         // Navigation & Control
         let arrows = [kVK_LeftArrow, kVK_RightArrow, kVK_UpArrow, kVK_DownArrow]
-        if (modifiers == cmd || modifiers == cmdShift) && arrows.contains(keyCode) { return true }
+        if modifiers == cmd || modifiers == cmdShift, arrows.contains(keyCode) { return true }
 
-        if modifiers == cmdCtrl && keyCode == kVK_ANSI_F { return true }
-        if modifiers == cmd && keyCode == kVK_Space { return true }
-        if modifiers == cmdOpt && [kVK_Space, kVK_Escape, kVK_ANSI_D, kVK_ANSI_F].contains(keyCode) { return true }
+        if modifiers == cmdCtrl, keyCode == kVK_ANSI_F { return true }
+        if modifiers == cmd, keyCode == kVK_Space { return true }
+        if modifiers == cmdOpt, [kVK_Space, kVK_Escape, kVK_ANSI_D, kVK_ANSI_F].contains(keyCode) { return true }
 
-        if modifiers == cmdShift && [kVK_ANSI_3, kVK_ANSI_4, kVK_ANSI_5].contains(keyCode) { return true }
-        if (modifiers == cmd || modifiers == cmdShift) && keyCode == kVK_Delete { return true }
-        if modifiers == cmd && [kVK_ANSI_Equal, kVK_ANSI_Minus].contains(keyCode) { return true }
+        if modifiers == cmdShift, [kVK_ANSI_3, kVK_ANSI_4, kVK_ANSI_5].contains(keyCode) { return true }
+        if modifiers == cmd || modifiers == cmdShift, keyCode == kVK_Delete { return true }
+        if modifiers == cmd, [kVK_ANSI_Equal, kVK_ANSI_Minus].contains(keyCode) { return true }
 
         return false
     }
@@ -109,16 +108,16 @@ struct ShortcutValidator {
         let reservedCtrl = [
             kVK_ANSI_C, kVK_ANSI_V, kVK_ANSI_X, kVK_ANSI_Z, kVK_ANSI_Y, kVK_ANSI_R,
             kVK_ANSI_A, kVK_ANSI_F, kVK_ANSI_G, kVK_ANSI_O, kVK_ANSI_S, kVK_ANSI_P,
-            kVK_ANSI_N, kVK_ANSI_T, kVK_ANSI_W, kVK_ANSI_K
+            kVK_ANSI_N, kVK_ANSI_T, kVK_ANSI_W, kVK_ANSI_K,
         ]
-        if modifiers == ctrl && reservedCtrl.contains(keyCode) { return true }
+        if modifiers == ctrl, reservedCtrl.contains(keyCode) { return true }
 
-        if modifiers == ctrl && [kVK_Home, kVK_End, kVK_Delete, kVK_ForwardDelete].contains(keyCode) { return true }
-        if modifiers == (ctrl | alt) && [kVK_ForwardDelete, kVK_Delete].contains(keyCode) { return true }
-        if modifiers == (ctrl | shiftKey) && keyCode == kVK_Escape { return true }
+        if modifiers == ctrl, [kVK_Home, kVK_End, kVK_Delete, kVK_ForwardDelete].contains(keyCode) { return true }
+        if modifiers == (ctrl | alt), [kVK_ForwardDelete, kVK_Delete].contains(keyCode) { return true }
+        if modifiers == (ctrl | shiftKey), keyCode == kVK_Escape { return true }
 
-        if modifiers == alt && [kVK_Tab, kVK_F4].contains(keyCode) { return true }
-        if modifiers == 0 && [kVK_F5, kVK_F11].contains(keyCode) { return true }
+        if modifiers == alt, [kVK_Tab, kVK_F4].contains(keyCode) { return true }
+        if modifiers == 0, [kVK_F5, kVK_F11].contains(keyCode) { return true }
 
         return false
     }

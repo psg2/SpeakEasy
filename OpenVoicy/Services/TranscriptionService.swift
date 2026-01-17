@@ -52,7 +52,7 @@ class TranscriptionService {
         body.append(Data("whisper-1\r\n".utf8))
 
         // Language
-        if let language = language, !language.isEmpty {
+        if let language, !language.isEmpty {
             body.append(Data("--\(boundary)\r\n".utf8))
             body.append(Data("Content-Disposition: form-data; name=\"language\"\r\n\r\n".utf8))
             body.append(Data("\(language)\r\n".utf8))

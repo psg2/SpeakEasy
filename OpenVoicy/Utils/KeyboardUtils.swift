@@ -1,11 +1,10 @@
-import Foundation
 import AppKit
 import Carbon
+import Foundation
 
 class KeyboardUtils {
-
     static func carbonModifiers(from nsModifiers: NSEvent.ModifierFlags) -> Int {
-        var carbonModifiers: Int = 0
+        var carbonModifiers = 0
         if nsModifiers.contains(.command) { carbonModifiers |= cmdKey }
         if nsModifiers.contains(.option) { carbonModifiers |= optionKey }
         if nsModifiers.contains(.control) { carbonModifiers |= controlKey }
@@ -27,7 +26,7 @@ class KeyboardUtils {
         if let keyString = keyToString(CGKeyCode(key)) {
             string += keyString.uppercased()
         } else {
-             string += "?"
+            string += "?"
         }
 
         return string
@@ -46,20 +45,22 @@ class KeyboardUtils {
 
         // Use TIS to convert key code to string
         guard let source = TISCopyCurrentKeyboardInputSource()?.takeRetainedValue(),
-              let layoutData = TISGetInputSourceProperty(source, kTISPropertyUnicodeKeyLayoutData) else {
+              let layoutData = TISGetInputSourceProperty(source, kTISPropertyUnicodeKeyLayoutData)
+        else {
             return nil
         }
 
         let dataRef = unsafeBitCast(layoutData, to: CFData.self)
 
         guard let keyLayout = CFDataGetBytePtr(dataRef)?
-            .withMemoryRebound(to: UCKeyboardLayout.self, capacity: 1, { $0 }) else {
+            .withMemoryRebound(to: UCKeyboardLayout.self, capacity: 1, { $0 })
+        else {
             return nil
         }
 
         var keysDown: UInt32 = 0
         var chars: [UniChar] = [0, 0, 0, 0]
-        var realLength: Int = 0
+        var realLength = 0
 
         let result = UCKeyTranslate(
             keyLayout,
@@ -71,10 +72,9 @@ class KeyboardUtils {
             &keysDown,
             4,
             &realLength,
-            &chars
-        )
+            &chars)
 
-        if result == noErr && realLength > 0 {
+        if result == noErr, realLength > 0 {
             return String(utf16CodeUnits: chars, count: realLength)
         }
 
