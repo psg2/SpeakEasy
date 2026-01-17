@@ -17,7 +17,9 @@ struct HistoryView: View {
         let filtered =
             searchText.isEmpty
             ? transcriptions
-            : transcriptions.filter { $0.text.localizedCaseInsensitiveContains(searchText) }
+            : transcriptions.filter {
+                $0.text.range(of: searchText, options: [.caseInsensitive, .diacriticInsensitive]) != nil
+            }
 
         let grouped = Dictionary(grouping: filtered) { record in
             Calendar.current.startOfDay(for: record.createdAt)
