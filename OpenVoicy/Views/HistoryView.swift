@@ -49,8 +49,7 @@ struct HistoryView: View {
             if let selected = selectedTranscription {
                 TranscriptionDetailView(transcription: selected, appState: appState)
             } else {
-                Text("Select a transcription")
-                    .foregroundColor(.secondary)
+                homeDetailView
             }
         }
         .frame(minWidth: 600, minHeight: 400)
@@ -61,9 +60,17 @@ struct HistoryView: View {
 
     private var headerView: some View {
         HStack {
-            Text("OpenVoicy")
-                .font(.title2)
-                .fontWeight(.semibold)
+            Button(action: { selectedTranscription = nil }) {
+                HStack(spacing: 6) {
+                    Image(systemName: "house.fill")
+                        .font(.body)
+                    Text("OpenVoicy")
+                        .font(.title2)
+                        .fontWeight(.semibold)
+                }
+            }
+            .buttonStyle(.plain)
+            .help("Return to Home")
 
             Spacer()
 
@@ -136,6 +143,49 @@ struct HistoryView: View {
             for: SettingsManager.shared.shortcutKeyCode,
             modifiers: SettingsManager.shared.shortcutModifierFlags
         )
+    }
+
+    private var homeDetailView: some View {
+        VStack(spacing: 24) {
+            Spacer()
+
+            Image(systemName: "waveform.circle.fill")
+                .font(.system(size: 80))
+                .foregroundStyle(.linearGradient(
+                    colors: [.cyan, .purple],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                ))
+
+            VStack(spacing: 8) {
+                Text("Hold \(shortcutDisplayText) to dictate")
+                    .font(.title2)
+                    .fontWeight(.semibold)
+
+                Text("Your transcriptions will appear in the sidebar")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            }
+
+            if !transcriptions.isEmpty {
+                VStack(spacing: 4) {
+                    Text("\(transcriptions.count) transcriptions")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    Text("\(totalWordCount) words total")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .padding(.top, 8)
+            }
+
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var totalWordCount: Int {
+        transcriptions.reduce(0) { $0 + $1.wordCount }
     }
 
     private var transcriptionList: some View {
