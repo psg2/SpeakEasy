@@ -12,9 +12,15 @@ class SettingsManager: ObservableObject {
         }
     }
 
-    @Published var shortcut: String {
+    @Published var shortcutKeyCode: Int {
         didSet {
-            defaults.set(shortcut, forKey: "global_shortcut")
+            defaults.set(shortcutKeyCode, forKey: "global_shortcut_key_code")
+        }
+    }
+
+    @Published var shortcutModifierFlags: Int {
+        didSet {
+            defaults.set(shortcutModifierFlags, forKey: "global_shortcut_modifier_flags")
         }
     }
 
@@ -32,7 +38,10 @@ class SettingsManager: ObservableObject {
 
     init() {
         self.apiKey = defaults.string(forKey: "openai_api_key") ?? ""
-        self.shortcut = defaults.string(forKey: "global_shortcut") ?? "Option+Space"
+        // Default to Option (2048/0x800) + Space (49/0x31)
+        self.shortcutKeyCode = defaults.object(forKey: "global_shortcut_key_code") as? Int ?? 49
+        self.shortcutModifierFlags = defaults.object(forKey: "global_shortcut_modifier_flags") as? Int ?? 2048
+
         self.language = defaults.string(forKey: "transcription_language")
         self.recordingMode = defaults.string(forKey: "recording_mode") ?? "pressToToggle"
     }

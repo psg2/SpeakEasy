@@ -52,19 +52,6 @@ class GlobalShortcutManager {
         RegisterEventHotKey(UInt32(key), UInt32(modifiers), mainHotKeyID, GetApplicationEventTarget(), 0, &hotKeyRef)
     }
 
-    func updateShortcut(from string: String) {
-        // Simple parser for MVP
-        // Example: "Option+Space"
-
-        var keyCode = UInt32(kVK_Space)
-        var modifiers = UInt32(optionKey)
-
-        // Implement full parser mapping string to kVK constants and Carbon modifier flags
-        // For now, defaulting to Option + Space
-
-        registerShortcut(key: Int(keyCode), modifiers: Int(modifiers))
-    }
-
     func registerEscapeShortcut() {
         if escapeKeyRef != nil { return } // Already registered
 

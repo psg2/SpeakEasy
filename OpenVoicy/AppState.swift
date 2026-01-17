@@ -36,7 +36,10 @@ class AppState: ObservableObject {
     }
 
     private func setupShortcut() {
-        GlobalShortcutManager.shared.updateShortcut(from: settings.shortcut)
+        GlobalShortcutManager.shared.registerShortcut(
+            key: settings.shortcutKeyCode,
+            modifiers: settings.shortcutModifierFlags
+        )
 
         GlobalShortcutManager.shared.onShortcutTriggered = { [weak self] in
             Task { @MainActor in
