@@ -4,6 +4,7 @@ import SwiftUI
 
 struct HistoryView: View {
     @ObservedObject var appState: AppState
+    @ObservedObject private var settings = SettingsManager.shared
     @Environment(\.modelContext) private var modelContext
 
     @Query(sort: \TranscriptionRecord.createdAt, order: .reverse)
@@ -54,7 +55,7 @@ struct HistoryView: View {
                 homeDetailView
             }
         }
-        .frame(minWidth: 600, minHeight: 400)
+        .frame(minWidth: 800, minHeight: 600)
         .sheet(isPresented: $showSettings) {
             SettingsView()
         }
@@ -85,7 +86,8 @@ struct HistoryView: View {
                     .font(.title3)
             }
             .buttonStyle(.plain)
-            .help("Settings")
+            .keyboardShortcut(",", modifiers: .command)
+            .help("Settings (⌘,)")
         }
         .padding()
     }
@@ -142,8 +144,8 @@ struct HistoryView: View {
 
     private var shortcutDisplayText: String {
         KeyboardUtils.string(
-            for: SettingsManager.shared.shortcutKeyCode,
-            modifiers: SettingsManager.shared.shortcutModifierFlags
+            for: settings.shortcutKeyCode,
+            modifiers: settings.shortcutModifierFlags
         )
     }
 
