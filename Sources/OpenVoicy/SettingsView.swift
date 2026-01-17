@@ -297,7 +297,7 @@ struct SettingsView: View {
     }
 
     private var currentModelError: String? {
-        if case let .error(message) = modelManager.downloadStatus[selectedModel] {
+        if case let .error(message) = modelManager.getStatus(for: selectedModel) {
             return message
         }
         return nil
@@ -341,7 +341,7 @@ struct SettingsView: View {
 
     @ViewBuilder
     private func modelActionButton(for model: WhisperModel) -> some View {
-        let status = self.modelManager.downloadStatus[model] ?? .notDownloaded
+        let status = self.modelManager.getStatus(for: model)
 
         switch status {
         case .downloaded:

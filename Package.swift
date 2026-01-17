@@ -13,12 +13,12 @@ let package = Package(
         )
     ],
     dependencies: [
-        .package(url: "https://github.com/exPHAT/SwiftWhisper", branch: "master")
+        .package(url: "https://github.com/argmaxinc/WhisperKit", from: "0.9.0")
     ],
     targets: [
         .target(
             name: "OpenVoicyLib",
-            dependencies: ["SwiftWhisper"],
+            dependencies: ["WhisperKit"],
             path: "Sources/OpenVoicy"
         )
     ]
