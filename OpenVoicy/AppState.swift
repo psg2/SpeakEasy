@@ -70,9 +70,17 @@ class AppState: ObservableObject {
     }
 
     func startRecording() {
-        guard self.settings.hasApiKey else {
-            self.errorMessage = "Please set your OpenAI API Key in settings."
-            return
+        switch settings.transcriptionProvider {
+        case .openAI:
+            guard settings.hasApiKey else {
+                self.errorMessage = "Please set your OpenAI API Key in Settings > Providers."
+                return
+            }
+        case .localWhisper:
+            guard settings.isLocalWhisperReady else {
+                self.errorMessage = "Please download a Whisper model in Settings > Providers."
+                return
+            }
         }
 
         self.errorMessage = nil

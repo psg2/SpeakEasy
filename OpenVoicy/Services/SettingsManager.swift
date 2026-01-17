@@ -36,6 +36,18 @@ class SettingsManager: ObservableObject {
         }
     }
 
+    @Published var transcriptionProvider: TranscriptionProvider {
+        didSet {
+            self.defaults.set(self.transcriptionProvider.rawValue, forKey: "transcription_provider")
+        }
+    }
+
+    @Published var selectedWhisperModel: WhisperModel {
+        didSet {
+            self.defaults.set(self.selectedWhisperModel.rawValue, forKey: "selected_whisper_model")
+        }
+    }
+
     init() {
         self.apiKey = self.defaults.string(forKey: "openai_api_key") ?? ""
         // Default to Option (2048/0x800) + Space (49/0x31)
@@ -44,9 +56,38 @@ class SettingsManager: ObservableObject {
 
         self.language = self.defaults.string(forKey: "transcription_language")
         self.recordingMode = self.defaults.string(forKey: "recording_mode") ?? "pressToToggle"
+
+        if let providerRaw = self.defaults.string(forKey: "transcription_provider"),
+           let provider = TranscriptionProvider(rawValue: providerRaw)
+        {
+            self.transcriptionProvider = provider
+        } else {
+            self.transcriptionProvider = .openAI
+        }
+
+        if let modelRaw = self.defaults.string(forKey: "selected_whisper_model"),
+           let model = WhisperModel(rawValue: modelRaw)
+        {
+            self.selectedWhisperModel = model
+        } else {
+            self.selectedWhisperModel = .base
+        }
     }
 
     var hasApiKey: Bool {
         !self.apiKey.isEmpty
+    }
+
+    var isLocalWhisperReady: Bool {
+        WhisperModelManager.shared.isModelDownloaded(selectedWhisperModel)
+    }
+
+    var canTranscribe: Bool {
+        switch transcriptionProvider {
+        case .openAI:
+            return hasApiKey
+        case .localWhisper:
+            return isLocalWhisperReady
+        }
     }
 }
