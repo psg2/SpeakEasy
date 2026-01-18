@@ -3,12 +3,14 @@ import SwiftUI
 
 enum SettingsTab: String, CaseIterable {
     case general = "General"
+    case snippets = "Snippets"
     case providers = "Providers"
     case about = "About"
 
     var icon: String {
         switch self {
         case .general: "slider.horizontal.3"
+        case .snippets: "text.badge.plus"
         case .providers: "server.rack"
         case .about: "info.circle"
         }
@@ -32,6 +34,10 @@ struct SettingsView: View {
     @State private var showApiKey: Bool = false
     @State private var isValidatingApiKey: Bool = false
     @State private var apiKeyValidationResult: ApiKeyValidationResult?
+    @State private var snippets: [String: String] = [:]
+    @State private var newSnippetKey: String = ""
+    @State private var newSnippetValue: String = ""
+    @State private var editingSnippetKey: String?
 
     enum ApiKeyValidationResult {
         case success
@@ -126,6 +132,8 @@ struct SettingsView: View {
                     switch self.selectedTab {
                     case .general:
                         self.generalContent
+                    case .snippets:
+                        self.snippetsContent
                     case .providers:
                         self.providersContent
                     case .about:
@@ -180,6 +188,125 @@ struct SettingsView: View {
                 }
             }
         }
+    }
+
+    // MARK: - Snippets Tab
+
+    private var snippetsContent: some View {
+        VStack(spacing: 20) {
+            self.settingsCard("Text Snippets") {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Snippets let you replace text in your transcriptions. When you say a snippet key, it will be automatically replaced with its value.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+
+                    Divider()
+
+                    if self.snippets.isEmpty {
+                        HStack {
+                            Spacer()
+                            VStack(spacing: 8) {
+                                Image(systemName: "text.badge.plus")
+                                    .font(.system(size: 32))
+                                    .foregroundColor(.secondary)
+                                Text("No snippets yet")
+                                    .font(.body)
+                                    .foregroundColor(.secondary)
+                                Text("Add your first snippet below")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding(.vertical, 20)
+                            Spacer()
+                        }
+                    } else {
+                        VStack(spacing: 8) {
+                            ForEach(Array(self.snippets.keys.sorted()), id: \.self) { key in
+                                self.snippetRow(key: key, value: self.snippets[key] ?? "")
+                            }
+                        }
+                    }
+
+                    Divider()
+
+                    VStack(spacing: 8) {
+                        HStack {
+                            Text("Add Snippet")
+                                .font(.caption)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.secondary)
+                            Spacer()
+                        }
+
+                        HStack(spacing: 8) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Key (what you say)")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                TextField("e.g., my email", text: self.$newSnippetKey)
+                                    .textFieldStyle(.roundedBorder)
+                            }
+
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Value (replacement)")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                TextField("e.g., foo@example.com", text: self.$newSnippetValue)
+                                    .textFieldStyle(.roundedBorder)
+                            }
+
+                            Button(action: self.addSnippet) {
+                                Image(systemName: "plus.circle.fill")
+                                    .font(.title3)
+                                    .foregroundColor(.accentColor)
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(self.newSnippetKey.isEmpty || self.newSnippetValue.isEmpty)
+                            .help("Add snippet")
+                            .padding(.top, 18)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func snippetRow(key: String, value: String) -> some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(key)
+                    .font(.body)
+                    .fontWeight(.medium)
+                Text(value)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+
+            Spacer()
+
+            Button(action: { self.deleteSnippet(key: key) }) {
+                Image(systemName: "trash")
+                    .font(.caption)
+                    .foregroundColor(.red)
+            }
+            .buttonStyle(.plain)
+            .help("Delete snippet")
+        }
+        .padding(8)
+        .background(Color.secondary.opacity(0.05))
+        .cornerRadius(6)
+    }
+
+    private func addSnippet() {
+        guard !self.newSnippetKey.isEmpty, !self.newSnippetValue.isEmpty else { return }
+
+        self.snippets[self.newSnippetKey] = self.newSnippetValue
+        self.newSnippetKey = ""
+        self.newSnippetValue = ""
+    }
+
+    private func deleteSnippet(key: String) {
+        self.snippets.removeValue(forKey: key)
     }
 
     // MARK: - Providers Tab
@@ -702,6 +829,7 @@ struct SettingsView: View {
         self.selectedProvider = self.settings.transcriptionProvider
         self.selectedModel = self.settings.selectedWhisperModel
         self.selectedModelId = self.settings.selectedModelId
+        self.snippets = self.settings.snippets
     }
 
     private func saveSettings() {
@@ -710,6 +838,7 @@ struct SettingsView: View {
         self.settings.transcriptionProvider = self.selectedProvider
         self.settings.selectedWhisperModel = self.selectedModel
         self.settings.selectedModelId = self.selectedModelId
+        self.settings.snippets = self.snippets
 
         if self.settings.shortcutKeyCode != self.shortcutKeyCode ||
             self.settings.shortcutModifierFlags != self.shortcutModifierFlags

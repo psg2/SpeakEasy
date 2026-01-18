@@ -144,19 +144,19 @@ public class AppState: ObservableObject {
             try self.modelContext.save()
 
             let transcriptionStart = Date()
-            let text = try await transcriber.transcribe(
+            let result = try await transcriber.transcribeWithSnippets(
                 audioFileURL: self.audioStorage.audioURL(for: audioFileName),
                 language: self.settings.language)
             let transcriptionTime = Date().timeIntervalSince(transcriptionStart)
 
-            record.updateText(text)
+            record.updateText(result.processedText, rawText: result.rawText)
             record.transcriptionStatus = .completed
             record.transcriptionTimeSeconds = transcriptionTime
             try self.modelContext.save()
 
-            self.lastTranscription = text
+            self.lastTranscription = result.processedText
 
-            self.accessibility.copyToClipboard(text)
+            self.accessibility.copyToClipboard(result.processedText)
 
             try? await Task.sleep(nanoseconds: 100 * 1_000_000)
 
@@ -190,12 +190,12 @@ public class AppState: ObservableObject {
 
         do {
             let transcriptionStart = Date()
-            let text = try await transcriber.transcribe(
+            let result = try await transcriber.transcribeWithSnippets(
                 audioFileURL: self.audioStorage.audioURL(for: audioFileName),
                 language: self.settings.language)
             let transcriptionTime = Date().timeIntervalSince(transcriptionStart)
 
-            record.updateText(text)
+            record.updateText(result.processedText, rawText: result.rawText)
             record.transcriptionStatus = .completed
             record.transcriptionTimeSeconds = transcriptionTime
             record.provider = self.settings.transcriptionProvider
