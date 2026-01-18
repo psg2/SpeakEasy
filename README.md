@@ -41,4 +41,3 @@ Press `Esc` to cancel recording.
 - SwiftData for persistence
 - [WhisperKit](https://github.com/argmaxinc/WhisperKit) for local inference
 - AVFoundation for audio capture
-
