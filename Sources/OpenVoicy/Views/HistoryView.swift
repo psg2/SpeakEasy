@@ -21,11 +21,11 @@ public struct HistoryView: View {
 
     private var groupedTranscriptions: [(String, [TranscriptionRecord])] {
         let filtered =
-            searchText.isEmpty
-            ? transcriptions
-            : transcriptions.filter {
-                $0.text.range(of: searchText, options: [.caseInsensitive, .diacriticInsensitive]) != nil
-            }
+            self.searchText.isEmpty
+                ? self.transcriptions
+                : self.transcriptions.filter {
+                    $0.text.range(of: self.searchText, options: [.caseInsensitive, .diacriticInsensitive]) != nil
+                }
 
         let grouped = Dictionary(grouping: filtered) { record in
             Calendar.current.startOfDay(for: record.createdAt)
@@ -33,26 +33,25 @@ public struct HistoryView: View {
 
         return grouped
             .sorted { $0.key > $1.key }
-            .map { (formatDateHeader($0.key), $0.value) }
+            .map { (self.formatDateHeader($0.key), $0.value) }
     }
 
     public var body: some View {
         VStack(spacing: 0) {
-            headerView
+            self.headerView
             Divider()
-            mainContent
+            self.mainContent
         }
         .frame(minWidth: 700, minHeight: 500)
-        .sheet(isPresented: $showSettings) {
+        .sheet(isPresented: self.$showSettings) {
             SettingsView()
         }
-        .sheet(item: $selectedTranscription) { transcription in
+        .sheet(item: self.$selectedTranscription) { transcription in
             TranscriptionDetailView(
                 transcription: transcription,
-                appState: appState,
-                onDelete: { selectedTranscription = nil }
-            )
-            .frame(minWidth: 500, minHeight: 400)
+                appState: self.appState,
+                onDelete: { self.selectedTranscription = nil })
+                .frame(minWidth: 500, minHeight: 400)
         }
     }
 
@@ -66,8 +65,7 @@ public struct HistoryView: View {
                     .foregroundStyle(.linearGradient(
                         colors: [.cyan, .purple],
                         startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ))
+                        endPoint: .bottomTrailing))
                 Text("OpenVoicy")
                     .font(.title2)
                     .fontWeight(.semibold)
@@ -75,11 +73,11 @@ public struct HistoryView: View {
 
             Spacer()
 
-            if appState.state != .idle {
-                recordingIndicator
+            if self.appState.state != .idle {
+                self.recordingIndicator
             }
 
-            Button(action: { showSettings = true }) {
+            Button(action: { self.showSettings = true }) {
                 Image(systemName: "gear")
                     .font(.title3)
             }
@@ -93,10 +91,10 @@ public struct HistoryView: View {
     private var recordingIndicator: some View {
         HStack(spacing: 6) {
             Circle()
-                .fill(appState.state == .recording ? Color.red : Color.orange)
+                .fill(self.appState.state == .recording ? Color.red : Color.orange)
                 .frame(width: 8, height: 8)
 
-            Text(appState.state == .recording ? "Recording" : "Processing")
+            Text(self.appState.state == .recording ? "Recording" : "Processing")
                 .font(.caption)
                 .foregroundColor(.secondary)
         }
@@ -111,15 +109,15 @@ public struct HistoryView: View {
     private var mainContent: some View {
         ScrollView {
             VStack(spacing: 24) {
-                statsAndSearchBar
+                self.statsAndSearchBar
                     .padding(.horizontal, 24)
                     .padding(.top, 16)
 
-                if transcriptions.isEmpty {
-                    emptyStateView
+                if self.transcriptions.isEmpty {
+                    self.emptyStateView
                         .frame(minHeight: 300)
                 } else {
-                    transcriptionTable
+                    self.transcriptionTable
                         .padding(.horizontal, 24)
                 }
             }
@@ -129,11 +127,11 @@ public struct HistoryView: View {
 
     private var statsAndSearchBar: some View {
         VStack(spacing: 16) {
-            if !transcriptions.isEmpty {
-                statsBar
+            if !self.transcriptions.isEmpty {
+                self.statsBar
             }
 
-            searchBar
+            self.searchBar
         }
     }
 
@@ -141,7 +139,11 @@ public struct HistoryView: View {
         HStack(spacing: 0) {
             Spacer()
 
-            statItem(icon: "doc.text.fill", value: "\(transcriptions.count)", label: "transcriptions", color: .blue)
+            self.statItem(
+                icon: "doc.text.fill",
+                value: "\(self.transcriptions.count)",
+                label: "transcriptions",
+                color: .blue)
 
             Spacer()
 
@@ -150,7 +152,7 @@ public struct HistoryView: View {
 
             Spacer()
 
-            statItem(icon: "textformat.size", value: "\(totalWordCount)", label: "words", color: .green)
+            self.statItem(icon: "textformat.size", value: "\(self.totalWordCount)", label: "words", color: .green)
 
             if let avgWPM = averageWordsPerMinute {
                 Spacer()
@@ -160,7 +162,7 @@ public struct HistoryView: View {
 
                 Spacer()
 
-                statItem(icon: "speedometer", value: "\(avgWPM)", label: "WPM", color: .orange)
+                self.statItem(icon: "speedometer", value: "\(avgWPM)", label: "WPM", color: .orange)
             }
 
             Spacer()
@@ -188,7 +190,7 @@ public struct HistoryView: View {
         HStack {
             Image(systemName: "magnifyingglass")
                 .foregroundColor(.secondary)
-            TextField("Search transcriptions...", text: $searchText)
+            TextField("Search transcriptions...", text: self.$searchText)
                 .textFieldStyle(.plain)
         }
         .padding(10)
@@ -207,10 +209,9 @@ public struct HistoryView: View {
                 .foregroundStyle(.linearGradient(
                     colors: [.cyan, .purple],
                     startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                ))
+                    endPoint: .bottomTrailing))
 
-            Text("Hold \(shortcutDisplayText) to dictate")
+            Text("Hold \(self.shortcutDisplayText) to dictate")
                 .font(.title2)
                 .fontWeight(.semibold)
 
@@ -225,16 +226,15 @@ public struct HistoryView: View {
 
     private var shortcutDisplayText: String {
         KeyboardUtils.string(
-            for: settings.shortcutKeyCode,
-            modifiers: settings.shortcutModifierFlags
-        )
+            for: self.settings.shortcutKeyCode,
+            modifiers: self.settings.shortcutModifierFlags)
     }
 
     // MARK: - Transcription Table
 
     private var transcriptionTable: some View {
         VStack(alignment: .leading, spacing: 24) {
-            ForEach(groupedTranscriptions, id: \.0) { dateString, records in
+            ForEach(self.groupedTranscriptions, id: \.0) { dateString, records in
                 VStack(alignment: .leading, spacing: 8) {
                     Text(dateString.uppercased())
                         .font(.caption)
@@ -246,12 +246,11 @@ public struct HistoryView: View {
                         ForEach(records) { record in
                             TranscriptionTableRow(
                                 transcription: record,
-                                onCopy: { copyTranscription(record) },
-                                onReveal: { revealAudio(record) },
-                                onRetry: { Task { await appState.retryTranscription(record: record) } },
-                                onDelete: { deleteTranscription(record) },
-                                onSelect: { selectedTranscription = record }
-                            )
+                                onCopy: { self.copyTranscription(record) },
+                                onReveal: { self.revealAudio(record) },
+                                onRetry: { Task { await self.appState.retryTranscription(record: record) } },
+                                onDelete: { self.deleteTranscription(record) },
+                                onSelect: { self.selectedTranscription = record })
                         }
                     }
                     .background(Color.secondary.opacity(0.06))
@@ -264,7 +263,7 @@ public struct HistoryView: View {
     // MARK: - Computed Properties
 
     private var averageWordsPerMinute: Int? {
-        let recordsWithDuration = transcriptions.filter { ($0.durationSeconds ?? 0) > 0 }
+        let recordsWithDuration = self.transcriptions.filter { ($0.durationSeconds ?? 0) > 0 }
         guard !recordsWithDuration.isEmpty else { return nil }
 
         let totalWords = recordsWithDuration.reduce(0) { $0 + $1.wordCount }
@@ -275,7 +274,7 @@ public struct HistoryView: View {
     }
 
     private var totalWordCount: Int {
-        transcriptions.reduce(0) { $0 + $1.wordCount }
+        self.transcriptions.reduce(0) { $0 + $1.wordCount }
     }
 
     // MARK: - Helper Functions
@@ -313,7 +312,7 @@ public struct HistoryView: View {
         if let fileName = record.audioFileName {
             try? AudioStorageManager.shared.deleteAudio(fileName: fileName)
         }
-        modelContext.delete(record)
+        self.modelContext.delete(record)
     }
 }
 
@@ -338,40 +337,40 @@ struct TranscriptionTableRow: View {
     var body: some View {
         HStack(spacing: 12) {
             // Time column
-            Text(timeFormatter.string(from: transcription.createdAt))
+            Text(self.timeFormatter.string(from: self.transcription.createdAt))
                 .font(.subheadline)
                 .foregroundColor(.secondary)
                 .frame(width: 70, alignment: .leading)
 
             // Text preview
-            textPreview
+            self.textPreview
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             // Metadata or action buttons
-            if isHovered {
-                actionButtons
+            if self.isHovered {
+                self.actionButtons
             } else {
-                metadataView
+                self.metadataView
             }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
-        .background(isHovered ? Color.secondary.opacity(0.08) : Color.clear)
+        .background(self.isHovered ? Color.secondary.opacity(0.08) : Color.clear)
         .contentShape(Rectangle())
         .onHover { hovering in
             withAnimation(.easeInOut(duration: 0.15)) {
-                isHovered = hovering
+                self.isHovered = hovering
             }
             if hovering { NSCursor.pointingHand.push() } else { NSCursor.pop() }
         }
         .onTapGesture {
-            onSelect()
+            self.onSelect()
         }
     }
 
     @ViewBuilder
     private var textPreview: some View {
-        if transcription.transcriptionStatus == .processing {
+        if self.transcription.transcriptionStatus == .processing {
             HStack(spacing: 6) {
                 ProgressView()
                     .scaleEffect(0.6)
@@ -379,7 +378,7 @@ struct TranscriptionTableRow: View {
                     .font(.body)
                     .foregroundColor(.secondary)
             }
-        } else if transcription.transcriptionStatus == .failed {
+        } else if self.transcription.transcriptionStatus == .failed {
             HStack(spacing: 6) {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .foregroundColor(.orange)
@@ -387,13 +386,13 @@ struct TranscriptionTableRow: View {
                     .font(.body)
                     .foregroundColor(.orange)
             }
-        } else if transcription.text.isEmpty {
+        } else if self.transcription.text.isEmpty {
             Text("No transcription")
                 .font(.body)
                 .foregroundColor(.secondary)
                 .italic()
         } else {
-            Text(transcription.text)
+            Text(self.transcription.text)
                 .font(.body)
                 .lineLimit(1)
                 .truncationMode(.tail)
@@ -406,7 +405,7 @@ struct TranscriptionTableRow: View {
                 HStack(spacing: 3) {
                     Image(systemName: "timer")
                         .font(.caption2)
-                    Text(formatTime(time))
+                    Text(time.formatAsTranscriptionTime())
                         .font(.caption)
                 }
                 .foregroundColor(.orange.opacity(0.8))
@@ -415,7 +414,7 @@ struct TranscriptionTableRow: View {
             if let provider = transcription.provider {
                 HStack(spacing: 3) {
                     Image(systemName: provider.icon)
-                    Text(transcription.modelName ?? (provider == .openAI ? "API" : "Local"))
+                    Text(self.transcription.modelName ?? (provider == .openAI ? "API" : "Local"))
                 }
                 .font(.caption)
                 .padding(.horizontal, 6)
@@ -429,42 +428,36 @@ struct TranscriptionTableRow: View {
 
     private var actionButtons: some View {
         HStack(spacing: 4) {
-            Button(action: onCopy) {
+            Button(action: self.onCopy) {
                 Image(systemName: "doc.on.doc")
                     .font(.body)
                     .frame(width: 28, height: 28)
             }
             .buttonStyle(.plain)
             .help("Copy")
-            .onHover { inside in
-                if inside { NSCursor.pointingHand.push() } else { NSCursor.pop() }
-            }
+            .handCursorOnHover()
 
-            if transcription.audioFileName != nil {
-                Button(action: onReveal) {
+            if self.transcription.audioFileName != nil {
+                Button(action: self.onReveal) {
                     Image(systemName: "folder")
                         .font(.body)
                         .frame(width: 28, height: 28)
                 }
                 .buttonStyle(.plain)
                 .help("Reveal in Finder")
-                .onHover { inside in
-                    if inside { NSCursor.pointingHand.push() } else { NSCursor.pop() }
-                }
+                .handCursorOnHover()
 
-                Button(action: onRetry) {
+                Button(action: self.onRetry) {
                     Image(systemName: "arrow.clockwise")
                         .font(.body)
                         .frame(width: 28, height: 28)
                 }
                 .buttonStyle(.plain)
                 .help("Retry transcription")
-                .onHover { inside in
-                    if inside { NSCursor.pointingHand.push() } else { NSCursor.pop() }
-                }
+                .handCursorOnHover()
             }
 
-            Button(action: onDelete) {
+            Button(action: self.onDelete) {
                 Image(systemName: "trash")
                     .font(.body)
                     .frame(width: 28, height: 28)
@@ -472,22 +465,8 @@ struct TranscriptionTableRow: View {
             .buttonStyle(.plain)
             .foregroundColor(.red.opacity(0.8))
             .help("Delete")
-            .onHover { inside in
-                if inside { NSCursor.pointingHand.push() } else { NSCursor.pop() }
-            }
+            .handCursorOnHover()
         }
         .foregroundColor(.secondary)
-    }
-
-    private func formatTime(_ seconds: Double) -> String {
-        if seconds < 1 {
-            return String(format: "%.0fms", seconds * 1000)
-        } else if seconds < 60 {
-            return String(format: "%.1fs", seconds)
-        } else {
-            let minutes = Int(seconds) / 60
-            let secs = seconds.truncatingRemainder(dividingBy: 60)
-            return String(format: "%dm %.0fs", minutes, secs)
-        }
     }
 }

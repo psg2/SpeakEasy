@@ -33,29 +33,30 @@ class WhisperModelManager: ObservableObject {
         "openai_whisper-base",
         "openai_whisper-small",
         "openai_whisper-medium",
-        "openai_whisper-large-v3_turbo"
+        "openai_whisper-large-v3_turbo",
     ]
 
     private init() {
         // Start with recommended models
-        availableModels = Self.recommendedModelIds.map { WhisperKitModel(id: $0) }
-        refreshAllDownloadStatus()
+        self.availableModels = Self.recommendedModelIds.map { WhisperKitModel(id: $0) }
+        self.refreshAllDownloadStatus()
 
         // Fetch full list from HuggingFace in background
         Task {
-            await fetchAvailableModels()
+            await self.fetchAvailableModels()
         }
     }
 
     // MARK: - Fetch Models from HuggingFace
 
     func fetchAvailableModels() async {
-        isLoadingModels = true
-        modelLoadError = nil
+        self.isLoadingModels = true
+        self.modelLoadError = nil
 
         do {
             // Fetch recursive tree to get all files with sizes
-            let url = URL(string: "https://huggingface.co/api/models/argmaxinc/whisperkit-coreml/tree/main?recursive=true")!
+            let url =
+                URL(string: "https://huggingface.co/api/models/argmaxinc/whisperkit-coreml/tree/main?recursive=true")!
             let (data, _) = try await URLSession.shared.data(from: url)
 
             // Parse the JSON response
@@ -78,7 +79,8 @@ class WhisperModelManager: ObservableObject {
                         // Use LFS size if available (for large files), otherwise regular size
                         let fileSize: Int64
                         if let lfs = item["lfs"] as? [String: Any],
-                           let lfsSize = lfs["size"] as? Int64 {
+                           let lfsSize = lfs["size"] as? Int64
+                        {
                             fileSize = lfsSize
                         } else if let size = item["size"] as? Int64 {
                             fileSize = size
@@ -92,7 +94,7 @@ class WhisperModelManager: ObservableObject {
                 }
 
                 // Store actual sizes
-                modelSizes = sizes
+                self.modelSizes = sizes
 
                 // Create model objects
                 var models = modelSet.map { WhisperKitModel(id: $0) }
@@ -102,8 +104,8 @@ class WhisperModelManager: ObservableObject {
                     let aRecommended = Self.recommendedModelIds.contains(a.id)
                     let bRecommended = Self.recommendedModelIds.contains(b.id)
 
-                    if aRecommended && !bRecommended { return true }
-                    if !aRecommended && bRecommended { return false }
+                    if aRecommended, !bRecommended { return true }
+                    if !aRecommended, bRecommended { return false }
 
                     // Both recommended or both not - sort by actual size
                     let aSize = sizes[a.id] ?? a.estimatedSizeBytes
@@ -111,29 +113,29 @@ class WhisperModelManager: ObservableObject {
                     return aSize < bSize
                 }
 
-                availableModels = models
+                self.availableModels = models
                 log.info("Fetched \(models.count) models from HuggingFace with actual sizes")
 
                 // Refresh download status for all models
-                refreshAllDownloadStatus()
+                self.refreshAllDownloadStatus()
             }
         } catch {
             log.error("Failed to fetch models: \(error.localizedDescription)")
-            modelLoadError = error.localizedDescription
+            self.modelLoadError = error.localizedDescription
             // Keep using recommended models as fallback
         }
 
-        isLoadingModels = false
+        self.isLoadingModels = false
     }
 
     /// Get the actual size for a model (from HuggingFace API) or fall back to estimate
     func getModelSize(_ modelId: String) -> Int64 {
-        modelSizes[modelId] ?? WhisperKitModel(id: modelId).estimatedSizeBytes
+        self.modelSizes[modelId] ?? WhisperKitModel(id: modelId).estimatedSizeBytes
     }
 
     /// Get formatted size string for a model
     func getModelSizeDescription(_ modelId: String) -> String {
-        let size = getModelSize(modelId)
+        let size = self.getModelSize(modelId)
         let formatter = ByteCountFormatter()
         formatter.countStyle = .file
         return formatter.string(fromByteCount: size)
@@ -143,66 +145,70 @@ class WhisperModelManager: ObservableObject {
 
     var whisperKitCacheDirectory: URL {
         // WhisperKit stores models in ~/Documents/huggingface/models/argmaxinc/whisperkit-coreml/
-        let documents = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
+        let documents = self.fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
         return documents.appendingPathComponent("huggingface/models/argmaxinc/whisperkit-coreml", isDirectory: true)
     }
 
-    var modelsDirectory: URL {
-        whisperKitCacheDirectory
-    }
-
     func modelPath(for modelId: String) -> URL {
-        whisperKitCacheDirectory.appendingPathComponent(modelId)
+        self.whisperKitCacheDirectory.appendingPathComponent(modelId)
     }
 
-    func isModelDownloaded(_ modelId: String) -> Bool {
-        let modelDir = modelPath(for: modelId)
+    /// Synchronous check if a model is downloaded. Can be called from any context.
+    nonisolated static func isModelDownloadedSync(_ modelId: String) -> Bool {
+        let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+        let modelDir = documents
+            .appendingPathComponent("huggingface/models/argmaxinc/whisperkit-coreml")
+            .appendingPathComponent(modelId)
         var isDirectory: ObjCBool = false
-        if fileManager.fileExists(atPath: modelDir.path, isDirectory: &isDirectory) {
+        if FileManager.default.fileExists(atPath: modelDir.path, isDirectory: &isDirectory) {
             if isDirectory.boolValue {
-                let contents = try? fileManager.contentsOfDirectory(atPath: modelDir.path)
+                let contents = try? FileManager.default.contentsOfDirectory(atPath: modelDir.path)
                 return (contents?.count ?? 0) > 0
             }
         }
         return false
     }
 
+    func isModelDownloaded(_ modelId: String) -> Bool {
+        Self.isModelDownloadedSync(modelId)
+    }
+
     // MARK: - Status Management
 
     func refreshAllDownloadStatus() {
-        for model in availableModels {
-            if case .downloading = downloadStatus[model.id] {
+        for model in self.availableModels {
+            if case .downloading = self.downloadStatus[model.id] {
                 continue
             }
-            downloadStatus[model.id] = isModelDownloaded(model.id) ? .downloaded : .notDownloaded
+            self.downloadStatus[model.id] = self.isModelDownloaded(model.id) ? .downloaded : .notDownloaded
         }
     }
 
     func getStatus(for modelId: String) -> ModelDownloadStatus {
-        downloadStatus[modelId] ?? (isModelDownloaded(modelId) ? .downloaded : .notDownloaded)
+        self.downloadStatus[modelId] ?? (self.isModelDownloaded(modelId) ? .downloaded : .notDownloaded)
     }
 
     // MARK: - Download Management
 
     func downloadModel(_ modelId: String) {
-        guard !isDownloading else {
+        guard !self.isDownloading else {
             log.warning("Download already in progress")
             return
         }
 
-        isDownloading = true
-        currentlyDownloadingModelId = modelId
-        downloadStatus[modelId] = .downloading(progress: 0)
+        self.isDownloading = true
+        self.currentlyDownloadingModelId = modelId
+        self.downloadStatus[modelId] = .downloading(progress: 0)
 
         log.info("Starting download for model: \(modelId)")
 
-        downloadTask = Task {
+        self.downloadTask = Task {
             do {
                 // Animate progress while downloading
                 let progressTask = Task {
                     var progress = 0.0
-                    while !Task.isCancelled && progress < 0.95 {
-                        try? await Task.sleep(nanoseconds: 500_000_000)  // 0.5s
+                    while !Task.isCancelled, progress < 0.95 {
+                        try? await Task.sleep(nanoseconds: 500_000_000) // 0.5s
                         progress = min(0.95, progress + 0.05)
                         await MainActor.run {
                             if case .downloading = self.downloadStatus[modelId] {
@@ -217,8 +223,7 @@ class WhisperModelManager: ObservableObject {
                 let _ = try await WhisperKit(
                     model: modelId,
                     verbose: false,
-                    logLevel: .none
-                )
+                    logLevel: .none)
 
                 progressTask.cancel()
 
@@ -240,30 +245,30 @@ class WhisperModelManager: ObservableObject {
     }
 
     func cancelDownload() {
-        downloadTask?.cancel()
-        downloadTask = nil
+        self.downloadTask?.cancel()
+        self.downloadTask = nil
 
         if let modelId = currentlyDownloadingModelId {
-            downloadStatus[modelId] = .notDownloaded
+            self.downloadStatus[modelId] = .notDownloaded
         }
 
-        currentlyDownloadingModelId = nil
-        isDownloading = false
+        self.currentlyDownloadingModelId = nil
+        self.isDownloading = false
     }
 
     func deleteModel(_ modelId: String) throws {
-        let path = modelPath(for: modelId)
-        if fileManager.fileExists(atPath: path.path) {
-            try fileManager.removeItem(at: path)
+        let path = self.modelPath(for: modelId)
+        if self.fileManager.fileExists(atPath: path.path) {
+            try self.fileManager.removeItem(at: path)
             log.info("Deleted model: \(modelId)")
         }
-        downloadStatus[modelId] = .notDownloaded
+        self.downloadStatus[modelId] = .notDownloaded
     }
 
     func openModelsFolder() {
-        let url = whisperKitCacheDirectory
-        if !fileManager.fileExists(atPath: url.path) {
-            try? fileManager.createDirectory(at: url, withIntermediateDirectories: true)
+        let url = self.whisperKitCacheDirectory
+        if !self.fileManager.fileExists(atPath: url.path) {
+            try? self.fileManager.createDirectory(at: url, withIntermediateDirectories: true)
         }
         NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: url.path)
     }
@@ -272,19 +277,19 @@ class WhisperModelManager: ObservableObject {
 
     // For compatibility with the existing WhisperModel enum
     func isModelDownloaded(_ model: WhisperModel) -> Bool {
-        isModelDownloaded(model.whisperKitName)
+        self.isModelDownloaded(model.whisperKitName)
     }
 
     func downloadModel(_ model: WhisperModel) {
-        downloadModel(model.whisperKitName)
+        self.downloadModel(model.whisperKitName)
     }
 
     func deleteModel(_ model: WhisperModel) throws {
-        try deleteModel(model.whisperKitName)
+        try self.deleteModel(model.whisperKitName)
     }
 
     func getStatus(for model: WhisperModel) -> ModelDownloadStatus {
-        getStatus(for: model.whisperKitName)
+        self.getStatus(for: model.whisperKitName)
     }
 }
 
@@ -296,11 +301,11 @@ enum WhisperModelError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .downloadInProgress:
-            return "A download is already in progress"
-        case .downloadFailed(let reason):
-            return "Download failed: \(reason)"
+            "A download is already in progress"
+        case let .downloadFailed(reason):
+            "Download failed: \(reason)"
         case .modelNotFound:
-            return "Model file not found"
+            "Model file not found"
         }
     }
 }

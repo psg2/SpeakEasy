@@ -286,7 +286,9 @@ struct SettingsView: View {
 
                 Button(action: { withAnimation { self.showAllModels.toggle() } }) {
                     HStack {
-                        Text(self.showAllModels ? "Hide additional models" : "Show all \(self.modelManager.availableModels.count) models")
+                        Text(self
+                            .showAllModels ? "Hide additional models" :
+                            "Show all \(self.modelManager.availableModels.count) models")
                             .font(.caption)
                         Image(systemName: self.showAllModels ? "chevron.up" : "chevron.down")
                             .font(.caption)
@@ -327,12 +329,6 @@ struct SettingsView: View {
         return self.modelManager.availableModels.filter { !recommendedIds.contains($0.id) }
     }
 
-    private func openModelsFolder() {
-        let url = self.modelManager.modelsDirectory
-        try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
-        NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: url.path)
-    }
-
     private var currentModelError: String? {
         if case let .error(message) = modelManager.getStatus(for: selectedModel) {
             return message
@@ -371,73 +367,13 @@ struct SettingsView: View {
 
                 Spacer()
 
-                self.modelActionButton(for: model)
+                self.modelActionButton(for: model.whisperKitName)
             }
             .padding(10)
             .background(isSelected ? Color.accentColor.opacity(0.1) : Color.clear)
             .cornerRadius(6)
         }
         .buttonStyle(.plain)
-    }
-
-    @ViewBuilder
-    private func modelActionButton(for model: WhisperModel) -> some View {
-        let status = self.modelManager.getStatus(for: model)
-
-        switch status {
-        case .downloaded:
-            HStack(spacing: 8) {
-                Image(systemName: "checkmark.circle.fill")
-                    .foregroundColor(.green)
-
-                Button(action: { try? self.modelManager.deleteModel(model) }) {
-                    Image(systemName: "trash")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-                .buttonStyle(.plain)
-                .help("Delete model")
-            }
-
-        case let .downloading(progress):
-            HStack(spacing: 8) {
-                ProgressView(value: progress)
-                    .frame(width: 60)
-
-                Text("\(Int(progress * 100))%")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .frame(width: 32, alignment: .trailing)
-
-                Button(action: { self.modelManager.cancelDownload() }) {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundColor(.secondary)
-                }
-                .buttonStyle(.plain)
-                .help("Cancel download")
-            }
-
-        case .notDownloaded:
-            Button(action: { self.modelManager.downloadModel(model) }) {
-                Image(systemName: "arrow.down.circle")
-                    .font(.title3)
-                    .foregroundColor(.accentColor)
-            }
-            .buttonStyle(.plain)
-            .disabled(self.modelManager.isDownloading)
-            .opacity(self.modelManager.isDownloading ? 0.5 : 1)
-            .help("Download model")
-
-        case .error:
-            Button(action: { self.modelManager.downloadModel(model) }) {
-                Image(systemName: "arrow.clockwise.circle")
-                    .font(.title3)
-                    .foregroundColor(.orange)
-            }
-            .buttonStyle(.plain)
-            .disabled(self.modelManager.isDownloading)
-            .help("Retry download")
-        }
     }
 
     // MARK: - Dynamic Model Option (for HuggingFace models)
@@ -447,7 +383,7 @@ struct SettingsView: View {
         return Button(action: {
             self.selectedModelId = model.id
             // Clear enum selection since we're using a dynamic model
-            self.selectedModel = .base  // Reset to default, but we'll use selectedModelId
+            self.selectedModel = .base // Reset to default, but we'll use selectedModelId
         }) {
             HStack {
                 Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
@@ -474,7 +410,7 @@ struct SettingsView: View {
 
                 Spacer()
 
-                self.dynamicModelActionButton(for: model)
+                self.modelActionButton(for: model.id)
             }
             .padding(10)
             .background(isSelected ? Color.accentColor.opacity(0.1) : Color.clear)
@@ -483,9 +419,11 @@ struct SettingsView: View {
         .buttonStyle(.plain)
     }
 
+    /// Unified action button for model download/delete operations.
+    /// Works with both WhisperModel enum (via whisperKitName) and WhisperKitModel (via id).
     @ViewBuilder
-    private func dynamicModelActionButton(for model: WhisperKitModel) -> some View {
-        let status = self.modelManager.getStatus(for: model.id)
+    private func modelActionButton(for modelId: String) -> some View {
+        let status = self.modelManager.getStatus(for: modelId)
 
         switch status {
         case .downloaded:
@@ -493,7 +431,7 @@ struct SettingsView: View {
                 Image(systemName: "checkmark.circle.fill")
                     .foregroundColor(.green)
 
-                Button(action: { try? self.modelManager.deleteModel(model.id) }) {
+                Button(action: { try? self.modelManager.deleteModel(modelId) }) {
                     Image(systemName: "trash")
                         .font(.caption)
                         .foregroundColor(.secondary)
@@ -521,7 +459,7 @@ struct SettingsView: View {
             }
 
         case .notDownloaded:
-            Button(action: { self.modelManager.downloadModel(model.id) }) {
+            Button(action: { self.modelManager.downloadModel(modelId) }) {
                 Image(systemName: "arrow.down.circle")
                     .font(.title3)
                     .foregroundColor(.accentColor)
@@ -532,7 +470,7 @@ struct SettingsView: View {
             .help("Download model")
 
         case .error:
-            Button(action: { self.modelManager.downloadModel(model.id) }) {
+            Button(action: { self.modelManager.downloadModel(modelId) }) {
                 Image(systemName: "arrow.clockwise.circle")
                     .font(.title3)
                     .foregroundColor(.orange)

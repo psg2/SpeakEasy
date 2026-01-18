@@ -1,6 +1,8 @@
 import AppKit
 import SwiftUI
 
+// Uses extensions from Utils/TimeFormatters.swift and Utils/ViewExtensions.swift
+
 struct TranscriptionDetailView: View {
     let transcription: TranscriptionRecord
     @ObservedObject var appState: AppState
@@ -11,9 +13,9 @@ struct TranscriptionDetailView: View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(transcription.createdAt, style: .date)
+                    Text(self.transcription.createdAt, style: .date)
                         .font(.headline)
-                    Text(transcription.createdAt, style: .time)
+                    Text(self.transcription.createdAt, style: .time)
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 }
@@ -21,17 +23,17 @@ struct TranscriptionDetailView: View {
                 Spacer()
 
                 VStack(alignment: .trailing, spacing: 4) {
-                    Text("\(transcription.wordCount) words")
+                    Text("\(self.transcription.wordCount) words")
                         .font(.subheadline)
                     if let duration = transcription.durationSeconds {
-                        Text(formatDuration(duration))
+                        Text(self.formatDuration(duration))
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
                     if let transcriptionTime = transcription.transcriptionTimeSeconds {
                         HStack(spacing: 4) {
                             Image(systemName: "timer")
-                            Text(formatTranscriptionTime(transcriptionTime))
+                            Text(transcriptionTime.formatAsTranscriptionTime())
                         }
                         .font(.caption)
                         .foregroundColor(.secondary)
@@ -39,19 +41,19 @@ struct TranscriptionDetailView: View {
                 }
             }
 
-            if transcription.provider != nil || transcription.modelName != nil {
-                providerInfoView
+            if self.transcription.provider != nil || self.transcription.modelName != nil {
+                self.providerInfoView
             }
 
             Divider()
 
-            if transcription.transcriptionStatus == .processing {
-                processingView
-            } else if transcription.text.isEmpty {
-                emptyTextView
+            if self.transcription.transcriptionStatus == .processing {
+                self.processingView
+            } else if self.transcription.text.isEmpty {
+                self.emptyTextView
             } else {
                 ScrollView {
-                    Text(transcription.text)
+                    Text(self.transcription.text)
                         .font(.body)
                         .textSelection(.enabled)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -61,13 +63,11 @@ struct TranscriptionDetailView: View {
             Divider()
 
             HStack {
-                Button(action: copyToClipboard) {
+                Button(action: self.copyToClipboard) {
                     Label("Copy", systemImage: "doc.on.doc")
                 }
-                .disabled(transcription.text.isEmpty)
-                .onHover { inside in
-                    if inside { NSCursor.pointingHand.push() } else { NSCursor.pop() }
-                }
+                .disabled(self.transcription.text.isEmpty)
+                .handCursorOnHover()
 
                 if let fileName = transcription.audioFileName,
                    AudioStorageManager.shared.audioFileExists(fileName: fileName)
@@ -75,30 +75,24 @@ struct TranscriptionDetailView: View {
                     Button(action: { AudioStorageManager.shared.revealInFinder(fileName: fileName) }) {
                         Label("Reveal Audio", systemImage: "folder")
                     }
-                    .onHover { inside in
-                        if inside { NSCursor.pointingHand.push() } else { NSCursor.pop() }
-                    }
+                    .handCursorOnHover()
 
                     Button(action: {
                         Task {
-                            await appState.retryTranscription(record: transcription)
+                            await self.appState.retryTranscription(record: self.transcription)
                         }
                     }) {
                         Label("Retry", systemImage: "arrow.clockwise")
                     }
-                    .onHover { inside in
-                        if inside { NSCursor.pointingHand.push() } else { NSCursor.pop() }
-                    }
+                    .handCursorOnHover()
                 }
 
                 Spacer()
 
-                Button(role: .destructive, action: deleteTranscription) {
+                Button(role: .destructive, action: self.deleteTranscription) {
                     Label("Delete", systemImage: "trash")
                 }
-                .onHover { inside in
-                    if inside { NSCursor.pointingHand.push() } else { NSCursor.pop() }
-                }
+                .handCursorOnHover()
             }
             .buttonStyle(.bordered)
         }
@@ -172,8 +166,8 @@ struct TranscriptionDetailView: View {
         if let fileName = transcription.audioFileName {
             try? AudioStorageManager.shared.deleteAudio(fileName: fileName)
         }
-        modelContext.delete(transcription)
-        onDelete?()
+        self.modelContext.delete(self.transcription)
+        self.onDelete?()
     }
 
     private func formatDuration(_ seconds: Double) -> String {
@@ -182,20 +176,8 @@ struct TranscriptionDetailView: View {
         return String(format: "%d:%02d", minutes, secs)
     }
 
-    private func formatTranscriptionTime(_ seconds: Double) -> String {
-        if seconds < 1 {
-            return String(format: "%.0fms", seconds * 1000)
-        } else if seconds < 60 {
-            return String(format: "%.1fs", seconds)
-        } else {
-            let minutes = Int(seconds) / 60
-            let secs = seconds.truncatingRemainder(dividingBy: 60)
-            return String(format: "%dm %.1fs", minutes, secs)
-        }
-    }
-
     private func copyToClipboard() {
         NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(transcription.text, forType: .string)
+        NSPasteboard.general.setString(self.transcription.text, forType: .string)
     }
 }

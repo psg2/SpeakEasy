@@ -12,7 +12,7 @@ struct TranscriptionRowView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Text(timeFormatter.string(from: transcription.createdAt))
+                Text(self.timeFormatter.string(from: self.transcription.createdAt))
                     .font(.caption)
                     .foregroundColor(.secondary)
 
@@ -23,7 +23,7 @@ struct TranscriptionRowView: View {
                         HStack(spacing: 2) {
                             Image(systemName: "timer")
                                 .font(.caption2)
-                            Text(formatTranscriptionTime(time))
+                            Text(time.formatAsTranscriptionTime())
                                 .font(.caption)
                         }
                         .foregroundColor(.orange.opacity(0.8))
@@ -32,19 +32,19 @@ struct TranscriptionRowView: View {
                     HStack(spacing: 4) {
                         Image(systemName: "textformat.size")
                             .font(.caption2)
-                        Text("\(transcription.wordCount) words")
+                        Text("\(self.transcription.wordCount) words")
                             .font(.caption)
                     }
                     .foregroundColor(.secondary)
                 }
             }
 
-            Text(transcription.text)
+            Text(self.transcription.text)
                 .font(.body)
                 .lineLimit(2)
                 .truncationMode(.tail)
 
-            if transcription.transcriptionStatus == .failed {
+            if self.transcription.transcriptionStatus == .failed {
                 HStack(spacing: 4) {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .foregroundColor(.orange)
@@ -52,7 +52,7 @@ struct TranscriptionRowView: View {
                         .font(.caption)
                         .foregroundColor(.orange)
                 }
-            } else if transcription.transcriptionStatus == .processing {
+            } else if self.transcription.transcriptionStatus == .processing {
                 HStack(spacing: 4) {
                     ProgressView()
                         .scaleEffect(0.6)
@@ -62,14 +62,14 @@ struct TranscriptionRowView: View {
                 }
             }
 
-            providerModelChips
+            self.providerModelChips
         }
         .padding(.vertical, 4)
     }
 
     @ViewBuilder
     private var providerModelChips: some View {
-        if transcription.provider != nil || transcription.modelName != nil {
+        if self.transcription.provider != nil || self.transcription.modelName != nil {
             HStack(spacing: 6) {
                 if let provider = transcription.provider {
                     HStack(spacing: 3) {
@@ -109,15 +109,4 @@ struct TranscriptionRowView: View {
         }
     }
 
-    private func formatTranscriptionTime(_ seconds: Double) -> String {
-        if seconds < 1 {
-            return String(format: "%.0fms", seconds * 1000)
-        } else if seconds < 60 {
-            return String(format: "%.1fs", seconds)
-        } else {
-            let minutes = Int(seconds) / 60
-            let secs = seconds.truncatingRemainder(dividingBy: 60)
-            return String(format: "%dm %.0fs", minutes, secs)
-        }
-    }
 }

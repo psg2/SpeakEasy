@@ -74,13 +74,12 @@ class SettingsManager: ObservableObject {
             self.transcriptionProvider = .openAI
         }
 
-        let whisperModel: WhisperModel
-        if let modelRaw = self.defaults.string(forKey: "selected_whisper_model"),
-           let model = WhisperModel(rawValue: modelRaw)
+        let whisperModel: WhisperModel = if let modelRaw = self.defaults.string(forKey: "selected_whisper_model"),
+                                            let model = WhisperModel(rawValue: modelRaw)
         {
-            whisperModel = model
+            model
         } else {
-            whisperModel = .base
+            .base
         }
         self.selectedWhisperModel = whisperModel
 
@@ -97,28 +96,15 @@ class SettingsManager: ObservableObject {
     }
 
     var isLocalWhisperReady: Bool {
-        // Check directly on file system to avoid actor isolation issues
-        // WhisperKit stores models in ~/Documents/huggingface/models/argmaxinc/whisperkit-coreml/
-        let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
-        let modelDir = documents
-            .appendingPathComponent("huggingface/models/argmaxinc/whisperkit-coreml")
-            .appendingPathComponent(selectedModelId)
-        var isDirectory: ObjCBool = false
-        if FileManager.default.fileExists(atPath: modelDir.path, isDirectory: &isDirectory) {
-            if isDirectory.boolValue {
-                let contents = try? FileManager.default.contentsOfDirectory(atPath: modelDir.path)
-                return (contents?.count ?? 0) > 0
-            }
-        }
-        return false
+        WhisperModelManager.isModelDownloadedSync(self.selectedModelId)
     }
 
     var canTranscribe: Bool {
-        switch transcriptionProvider {
+        switch self.transcriptionProvider {
         case .openAI:
-            return hasApiKey
+            self.hasApiKey
         case .localWhisper:
-            return isLocalWhisperReady
+            self.isLocalWhisperReady
         }
     }
 }
