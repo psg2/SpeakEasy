@@ -1,0 +1,4 @@
+[default.extend-words]
+# ISO 639-1 language codes used in WhisperLanguage definitions
+fo = "fo"  # Faroese
+ba = "ba"  # Bashkir

@@ -413,6 +413,19 @@ struct TranscriptionTableRow: View {
                 .foregroundColor(.orange.opacity(0.8))
             }
 
+            if transcription.rawText != nil, transcription.rawText != transcription.text {
+                HStack(spacing: 3) {
+                    Image(systemName: "text.badge.checkmark")
+                        .font(.caption)
+                }
+                .padding(.horizontal, 6)
+                .padding(.vertical, 3)
+                .background(Color.green.opacity(0.15))
+                .cornerRadius(4)
+                .foregroundColor(.green)
+                .help("Snippets applied")
+            }
+
             if let provider = transcription.provider {
                 HStack(spacing: 3) {
                     Image(systemName: provider.icon)

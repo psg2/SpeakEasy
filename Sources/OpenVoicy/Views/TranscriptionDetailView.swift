@@ -9,6 +9,19 @@ struct TranscriptionDetailView: View {
     @Environment(\.modelContext) private var modelContext
     var onDelete: (() -> Void)?
 
+    @State private var showRawText: Bool = false
+
+    private var hasSnippetReplacements: Bool {
+        transcription.rawText != nil && transcription.rawText != transcription.text
+    }
+
+    private var displayedText: String {
+        if showRawText, let rawText = transcription.rawText {
+            return rawText
+        }
+        return transcription.text
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
@@ -47,13 +60,23 @@ struct TranscriptionDetailView: View {
 
             Divider()
 
+            if self.hasSnippetReplacements {
+                Picker("", selection: self.$showRawText) {
+                    Text("Processed").tag(false)
+                    Text("Raw").tag(true)
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .frame(width: 200)
+            }
+
             if self.transcription.transcriptionStatus == .processing {
                 self.processingView
             } else if self.transcription.text.isEmpty {
                 self.emptyTextView
             } else {
                 ScrollView {
-                    Text(self.transcription.text)
+                    Text(self.displayedText)
                         .font(.body)
                         .textSelection(.enabled)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -178,6 +201,6 @@ struct TranscriptionDetailView: View {
 
     private func copyToClipboard() {
         NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(self.transcription.text, forType: .string)
+        NSPasteboard.general.setString(self.displayedText, forType: .string)
     }
 }
