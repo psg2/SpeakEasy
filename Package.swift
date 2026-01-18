@@ -19,4 +19,8 @@ let package = Package(
             name: "OpenVoicyLib",
             dependencies: ["WhisperKit"],
             path: "Sources/OpenVoicy"),
+        .testTarget(
+            name: "OpenVoicyTests",
+            dependencies: ["OpenVoicyLib"],
+            path: "Tests/OpenVoicyTests"),
     ])
