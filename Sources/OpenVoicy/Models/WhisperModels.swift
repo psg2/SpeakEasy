@@ -7,34 +7,34 @@ public enum TranscriptionProvider: String, CaseIterable, Codable {
 
     public var displayName: String {
         switch self {
-        case .openAI: return "OpenAI API"
-        case .localWhisper: return "Local Whisper"
+        case .openAI: "OpenAI API"
+        case .localWhisper: "Local Whisper"
         }
     }
 
     public var description: String {
         switch self {
-        case .openAI: return "Cloud-based, requires API key"
-        case .localWhisper: return "On-device with CoreML (Apple Silicon optimized)"
+        case .openAI: "Cloud-based, requires API key"
+        case .localWhisper: "On-device with CoreML (Apple Silicon optimized)"
         }
     }
 
     public var icon: String {
         switch self {
-        case .openAI: return "cloud"
-        case .localWhisper: return "desktopcomputer"
+        case .openAI: "cloud"
+        case .localWhisper: "desktopcomputer"
         }
     }
 }
 
 // Dynamic Whisper model from HuggingFace
 struct WhisperKitModel: Identifiable, Codable, Hashable {
-    let id: String  // e.g., "openai_whisper-base"
+    let id: String // e.g., "openai_whisper-base"
 
     var displayName: String {
         // Convert "openai_whisper-base" to "Base"
         // Convert "openai_whisper-large-v3_turbo" to "Large V3 Turbo"
-        var name = id
+        var name = self.id
             .replacingOccurrences(of: "openai_whisper-", with: "")
             .replacingOccurrences(of: "distil-whisper_distil-", with: "Distil ")
             .replacingOccurrences(of: "_", with: " ")
@@ -58,50 +58,50 @@ struct WhisperKitModel: Identifiable, Codable, Hashable {
     }
 
     var isEnglishOnly: Bool {
-        id.hasSuffix(".en")
+        self.id.hasSuffix(".en")
     }
 
     var isDistil: Bool {
-        id.hasPrefix("distil-whisper")
+        self.id.hasPrefix("distil-whisper")
     }
 
     var isTurbo: Bool {
-        id.contains("turbo")
+        self.id.contains("turbo")
     }
 
     /// Estimated size based on model variant
     var estimatedSizeBytes: Int64 {
         // Extract size from name if present (e.g., "947MB")
         if let match = id.range(of: #"(\d+)MB"#, options: .regularExpression) {
-            let sizeStr = id[match].replacingOccurrences(of: "MB", with: "")
+            let sizeStr = self.id[match].replacingOccurrences(of: "MB", with: "")
             if let size = Int64(sizeStr) {
                 return size * 1_000_000
             }
         }
 
         // Otherwise estimate based on model name
-        if id.contains("tiny") { return 66_000_000 }
-        if id.contains("base") { return 148_000_000 }
-        if id.contains("small") { return 244_000_000 }
-        if id.contains("medium") { return 1_530_000_000 }
-        if id.contains("large") { return 3_000_000_000 }
-        return 500_000_000  // Default estimate
+        if self.id.contains("tiny") { return 66_000_000 }
+        if self.id.contains("base") { return 148_000_000 }
+        if self.id.contains("small") { return 244_000_000 }
+        if self.id.contains("medium") { return 1_530_000_000 }
+        if self.id.contains("large") { return 3_000_000_000 }
+        return 500_000_000 // Default estimate
     }
 
     var sizeDescription: String {
         let formatter = ByteCountFormatter()
         formatter.countStyle = .file
-        return formatter.string(fromByteCount: estimatedSizeBytes)
+        return formatter.string(fromByteCount: self.estimatedSizeBytes)
     }
 
     var qualityDescription: String {
-        if id.contains("tiny") { return "Fastest, best for simple dictation" }
-        if id.contains("base") { return "Fast, good for clear audio" }
-        if id.contains("small") { return "Balanced speed and accuracy" }
-        if id.contains("medium") { return "High accuracy, moderate speed" }
-        if id.contains("large") && isTurbo { return "Best accuracy with optimized speed" }
-        if id.contains("large") { return "Best accuracy, slower" }
-        if isDistil { return "Distilled model - faster inference" }
+        if self.id.contains("tiny") { return "Fastest, best for simple dictation" }
+        if self.id.contains("base") { return "Fast, good for clear audio" }
+        if self.id.contains("small") { return "Balanced speed and accuracy" }
+        if self.id.contains("medium") { return "High accuracy, moderate speed" }
+        if self.id.contains("large"), self.isTurbo { return "Best accuracy with optimized speed" }
+        if self.id.contains("large") { return "Best accuracy, slower" }
+        if self.isDistil { return "Distilled model - faster inference" }
         return "Whisper model"
     }
 }
@@ -117,55 +117,55 @@ enum ModelDownloadStatus: Equatable {
 // Legacy enum for settings compatibility
 // This maps to the new dynamic model system
 enum WhisperModel: String, CaseIterable, Codable {
-    case tiny = "tiny"
-    case base = "base"
-    case small = "small"
-    case medium = "medium"
+    case tiny
+    case base
+    case small
+    case medium
     case largeTurbo = "large-v3-turbo"
 
     var displayName: String {
         switch self {
-        case .tiny: return "Tiny"
-        case .base: return "Base"
-        case .small: return "Small"
-        case .medium: return "Medium"
-        case .largeTurbo: return "Large V3 Turbo"
+        case .tiny: "Tiny"
+        case .base: "Base"
+        case .small: "Small"
+        case .medium: "Medium"
+        case .largeTurbo: "Large V3 Turbo"
         }
     }
 
     var whisperKitName: String {
         switch self {
-        case .tiny: return "openai_whisper-tiny"
-        case .base: return "openai_whisper-base"
-        case .small: return "openai_whisper-small"
-        case .medium: return "openai_whisper-medium"
-        case .largeTurbo: return "openai_whisper-large-v3_turbo"
+        case .tiny: "openai_whisper-tiny"
+        case .base: "openai_whisper-base"
+        case .small: "openai_whisper-small"
+        case .medium: "openai_whisper-medium"
+        case .largeTurbo: "openai_whisper-large-v3_turbo"
         }
     }
 
     var sizeBytes: Int64 {
         switch self {
-        case .tiny: return 66_000_000
-        case .base: return 148_000_000
-        case .small: return 244_000_000
-        case .medium: return 1_530_000_000
-        case .largeTurbo: return 954_000_000
+        case .tiny: 66_000_000
+        case .base: 148_000_000
+        case .small: 244_000_000
+        case .medium: 1_530_000_000
+        case .largeTurbo: 954_000_000
         }
     }
 
     var sizeDescription: String {
         let formatter = ByteCountFormatter()
         formatter.countStyle = .file
-        return formatter.string(fromByteCount: sizeBytes)
+        return formatter.string(fromByteCount: self.sizeBytes)
     }
 
     var qualityDescription: String {
         switch self {
-        case .tiny: return "Fastest, best for simple dictation"
-        case .base: return "Fast, good for clear audio"
-        case .small: return "Balanced speed and accuracy"
-        case .medium: return "High accuracy, moderate speed"
-        case .largeTurbo: return "Best accuracy with optimized speed"
+        case .tiny: "Fastest, best for simple dictation"
+        case .base: "Fast, good for clear audio"
+        case .small: "Balanced speed and accuracy"
+        case .medium: "High accuracy, moderate speed"
+        case .largeTurbo: "Best accuracy with optimized speed"
         }
     }
 }

@@ -70,14 +70,14 @@ public class AppState: ObservableObject {
     }
 
     func startRecording() {
-        switch settings.transcriptionProvider {
+        switch self.settings.transcriptionProvider {
         case .openAI:
-            guard settings.hasApiKey else {
+            guard self.settings.hasApiKey else {
                 self.errorMessage = "Please set your OpenAI API Key in Settings > Providers."
                 return
             }
         case .localWhisper:
-            guard settings.isLocalWhisperReady else {
+            guard self.settings.isLocalWhisperReady else {
                 self.errorMessage = "Please download a Whisper model in Settings > Providers."
                 return
             }
@@ -122,11 +122,11 @@ public class AppState: ObservableObject {
     }
 
     private func transcribeAndSave(temporaryURL: URL) async {
-        let duration = recordingStartTime.map { Date().timeIntervalSince($0) }
-        let provider = settings.transcriptionProvider
+        let duration = self.recordingStartTime.map { Date().timeIntervalSince($0) }
+        let provider = self.settings.transcriptionProvider
         let modelName: String? = switch provider {
         case .openAI: "whisper-1"
-        case .localWhisper: settings.selectedWhisperModel.displayName
+        case .localWhisper: self.settings.selectedWhisperModel.displayName
         }
 
         do {
@@ -139,22 +139,20 @@ public class AppState: ObservableObject {
                 language: settings.language,
                 transcriptionStatus: .processing,
                 provider: provider,
-                modelName: modelName
-            )
-            modelContext.insert(record)
-            try modelContext.save()
+                modelName: modelName)
+            self.modelContext.insert(record)
+            try self.modelContext.save()
 
             let transcriptionStart = Date()
             let text = try await transcriber.transcribe(
-                audioFileURL: audioStorage.audioURL(for: audioFileName),
-                language: settings.language
-            )
+                audioFileURL: self.audioStorage.audioURL(for: audioFileName),
+                language: self.settings.language)
             let transcriptionTime = Date().timeIntervalSince(transcriptionStart)
 
             record.updateText(text)
             record.transcriptionStatus = .completed
             record.transcriptionTimeSeconds = transcriptionTime
-            try modelContext.save()
+            try self.modelContext.save()
 
             self.lastTranscription = text
 
@@ -190,28 +188,27 @@ public class AppState: ObservableObject {
         }
 
         record.transcriptionStatus = .processing
-        try? modelContext.save()
+        try? self.modelContext.save()
 
         do {
             let transcriptionStart = Date()
             let text = try await transcriber.transcribe(
-                audioFileURL: audioStorage.audioURL(for: audioFileName),
-                language: settings.language
-            )
+                audioFileURL: self.audioStorage.audioURL(for: audioFileName),
+                language: self.settings.language)
             let transcriptionTime = Date().timeIntervalSince(transcriptionStart)
 
             record.updateText(text)
             record.transcriptionStatus = .completed
             record.transcriptionTimeSeconds = transcriptionTime
-            record.provider = settings.transcriptionProvider
-            record.modelName = settings.transcriptionProvider == .openAI
+            record.provider = self.settings.transcriptionProvider
+            record.modelName = self.settings.transcriptionProvider == .openAI
                 ? "whisper-1"
-                : settings.selectedWhisperModel.displayName
-            try? modelContext.save()
+                : self.settings.selectedWhisperModel.displayName
+            try? self.modelContext.save()
 
         } catch {
             record.transcriptionStatus = .failed
-            try? modelContext.save()
+            try? self.modelContext.save()
             self.errorMessage = "Retry failed: \(error.localizedDescription)"
         }
     }

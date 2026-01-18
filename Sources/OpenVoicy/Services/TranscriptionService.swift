@@ -14,23 +14,23 @@ enum TranscriptionError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .invalidApiKey:
-            return "Invalid or missing API key"
+            "Invalid or missing API key"
         case .fileTooLarge:
-            return "Audio file too large (max 25MB for OpenAI)"
+            "Audio file too large (max 25MB for OpenAI)"
         case .fileTooShort:
-            return "Audio recording too short"
-        case .networkError(let msg):
-            return "Network error: \(msg)"
-        case .apiError(let msg):
-            return "API error: \(msg)"
+            "Audio recording too short"
+        case let .networkError(msg):
+            "Network error: \(msg)"
+        case let .apiError(msg):
+            "API error: \(msg)"
         case .invalidResponse:
-            return "Invalid response from server"
+            "Invalid response from server"
         case .encodingError:
-            return "Failed to encode audio"
+            "Failed to encode audio"
         case .modelNotReady:
-            return "Whisper model not downloaded"
-        case .localWhisperError(let msg):
-            return "Local Whisper error: \(msg)"
+            "Whisper model not downloaded"
+        case let .localWhisperError(msg):
+            "Local Whisper error: \(msg)"
         }
     }
 }
@@ -46,26 +46,25 @@ class TranscriptionService {
     private let settings = SettingsManager.shared
 
     func transcribe(audioFileURL: URL, language: String? = nil) async throws -> String {
-        switch settings.transcriptionProvider {
+        switch self.settings.transcriptionProvider {
         case .openAI:
-            return try await transcribeWithOpenAI(audioFileURL: audioFileURL, language: language)
+            try await self.transcribeWithOpenAI(audioFileURL: audioFileURL, language: language)
         case .localWhisper:
-            return try await transcribeWithLocalWhisper(audioFileURL: audioFileURL, language: language)
+            try await self.transcribeWithLocalWhisper(audioFileURL: audioFileURL, language: language)
         }
     }
 
     // MARK: - Local Whisper Transcription
 
     private func transcribeWithLocalWhisper(audioFileURL: URL, language: String?) async throws -> String {
-        guard settings.isLocalWhisperReady else {
+        guard self.settings.isLocalWhisperReady else {
             throw TranscriptionError.modelNotReady
         }
 
         do {
             return try await LocalWhisperService.shared.transcribe(
                 audioFileURL: audioFileURL,
-                language: language
-            )
+                language: language)
         } catch let error as LocalWhisperError {
             throw TranscriptionError.localWhisperError(error.localizedDescription)
         } catch {

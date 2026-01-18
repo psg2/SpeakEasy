@@ -25,8 +25,8 @@ public final class TranscriptionRecord {
     public var transcriptionTimeSeconds: Double?
 
     public var provider: TranscriptionProvider? {
-        get { providerRawValue.flatMap { TranscriptionProvider(rawValue: $0) } }
-        set { providerRawValue = newValue?.rawValue }
+        get { self.providerRawValue.flatMap { TranscriptionProvider(rawValue: $0) } }
+        set { self.providerRawValue = newValue?.rawValue }
     }
 
     public init(
@@ -39,8 +39,8 @@ public final class TranscriptionRecord {
         transcriptionStatus: TranscriptionStatus = .completed,
         provider: TranscriptionProvider? = nil,
         modelName: String? = nil,
-        transcriptionTimeSeconds: Double? = nil
-    ) {
+        transcriptionTimeSeconds: Double? = nil)
+    {
         self.id = id
         self.text = text
         self.createdAt = createdAt

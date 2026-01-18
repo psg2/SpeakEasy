@@ -13,26 +13,24 @@ struct OpenVoicyApp: App {
         let schema = Schema([TranscriptionRecord.self])
         let modelConfiguration = ModelConfiguration(
             schema: schema,
-            isStoredInMemoryOnly: false
-        )
+            isStoredInMemoryOnly: false)
 
         do {
-            modelContainer = try ModelContainer(
+            self.modelContainer = try ModelContainer(
                 for: schema,
-                configurations: [modelConfiguration]
-            )
+                configurations: [modelConfiguration])
         } catch {
             fatalError("Could not create ModelContainer: \(error)")
         }
 
-        let context = modelContainer.mainContext
+        let context = self.modelContainer.mainContext
         _appState = StateObject(wrappedValue: AppState(modelContext: context))
     }
 
     var body: some Scene {
         WindowGroup {
             HistoryView(appState: self.appState)
-                .modelContainer(modelContainer)
+                .modelContainer(self.modelContainer)
                 .onChange(of: self.appState.state) { _, newState in
                     if newState == .idle {
                         self.overlayController.hideOverlay()

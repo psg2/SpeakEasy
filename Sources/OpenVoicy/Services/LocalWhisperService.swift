@@ -15,7 +15,7 @@ class LocalWhisperService {
     }
 
     func ensureModelLoaded(_ modelId: String) async throws {
-        if loadedModelId == modelId && whisperKit != nil {
+        if self.loadedModelId == modelId, self.whisperKit != nil {
             log.whisper("✓ Model \(modelId) already loaded (skipping load)")
             return
         }
@@ -27,11 +27,11 @@ class LocalWhisperService {
         let totalLoadStart = CFAbsoluteTimeGetCurrent()
 
         // Unload previous model first to free memory
-        if whisperKit != nil {
+        if self.whisperKit != nil {
             let unloadStart = CFAbsoluteTimeGetCurrent()
             log.whisper("Unloading previous model to free memory...")
-            whisperKit = nil
-            loadedModelId = nil
+            self.whisperKit = nil
+            self.loadedModelId = nil
             let unloadTime = CFAbsoluteTimeGetCurrent() - unloadStart
             log.whisper("  → Unload time: \(String(format: "%.2f", unloadTime * 1000))ms")
         }
@@ -41,11 +41,10 @@ class LocalWhisperService {
 
         do {
             // WhisperKit will download the model if not present
-            whisperKit = try await WhisperKit(
+            self.whisperKit = try await WhisperKit(
                 model: modelId,
                 verbose: false,
-                logLevel: .none
-            )
+                logLevel: .none)
             let initTime = CFAbsoluteTimeGetCurrent() - initStart
 
             let totalLoadTime = CFAbsoluteTimeGetCurrent() - totalLoadStart
@@ -53,7 +52,7 @@ class LocalWhisperService {
             log.whisper("  → Total load time: \(String(format: "%.2f", totalLoadTime))s")
             log.whisper("══════════════════════════════════════════")
 
-            loadedModelId = modelId
+            self.loadedModelId = modelId
         } catch {
             log.error("Failed to initialize WhisperKit: \(error.localizedDescription)")
             throw LocalWhisperError.modelLoadFailed(modelId)
@@ -76,13 +75,13 @@ class LocalWhisperService {
         try await ensureModelLoaded(modelId)
         let modelLoadTime = CFAbsoluteTimeGetCurrent() - modelLoadStart
 
-        guard let whisperKit = whisperKit else {
+        guard let whisperKit else {
             log.error("WhisperKit instance is nil after loading")
             throw LocalWhisperError.modelNotLoaded
         }
 
         // Step 2: Get audio duration for stats
-        let audioDurationSec = getAudioDuration(url: audioFileURL)
+        let audioDurationSec = self.getAudioDuration(url: audioFileURL)
         log.whisper("Audio duration: \(String(format: "%.1f", audioDurationSec))s")
 
         // Step 3: Run transcription
@@ -92,12 +91,10 @@ class LocalWhisperService {
         let results = try await whisperKit.transcribe(
             audioPath: audioFileURL.path,
             decodeOptions: DecodingOptions(
-                language: language
-            )
-        )
+                language: language))
         let transcribeTime = CFAbsoluteTimeGetCurrent() - transcribeStart
 
-        let transcription = results.map { $0.text }.joined(separator: " ")
+        let transcription = results.map(\.text).joined(separator: " ")
         let result = transcription.trimmingCharacters(in: .whitespacesAndNewlines)
 
         let totalTime = CFAbsoluteTimeGetCurrent() - totalStart
@@ -130,8 +127,8 @@ class LocalWhisperService {
     }
 
     func unloadModel() {
-        whisperKit = nil
-        loadedModelId = nil
+        self.whisperKit = nil
+        self.loadedModelId = nil
     }
 }
 
@@ -146,17 +143,17 @@ enum LocalWhisperError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .modelNotDownloaded:
-            return "Whisper model not downloaded. Please download it in Settings."
+            "Whisper model not downloaded. Please download it in Settings."
         case .modelNotLoaded:
-            return "Failed to load Whisper model"
+            "Failed to load Whisper model"
         case .modelCorrupted:
-            return "Model file appears corrupted. Please delete and re-download."
-        case .modelLoadFailed(let modelName):
-            return "Failed to load \(modelName) model. It may be incompatible or corrupted."
+            "Model file appears corrupted. Please delete and re-download."
+        case let .modelLoadFailed(modelName):
+            "Failed to load \(modelName) model. It may be incompatible or corrupted."
         case .audioConversionFailed:
-            return "Failed to convert audio for transcription"
-        case .transcriptionFailed(let reason):
-            return "Transcription failed: \(reason)"
+            "Failed to convert audio for transcription"
+        case let .transcriptionFailed(reason):
+            "Transcription failed: \(reason)"
         }
     }
 }

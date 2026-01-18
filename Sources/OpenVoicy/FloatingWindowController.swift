@@ -4,7 +4,7 @@ import SwiftUI
 public class FloatingWindowController: NSObject {
     var overlayWindow: NSWindow?
 
-    public override init() {
+    override public init() {
         super.init()
     }
 

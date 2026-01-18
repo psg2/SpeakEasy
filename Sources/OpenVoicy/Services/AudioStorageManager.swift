@@ -10,23 +10,21 @@ class AudioStorageManager {
     private init() {}
 
     var appSupportDirectory: URL {
-        let appSupport = fileManager.urls(
+        let appSupport = self.fileManager.urls(
             for: .applicationSupportDirectory,
-            in: .userDomainMask
-        ).first!
+            in: .userDomainMask).first!
         return appSupport.appendingPathComponent("OpenVoicy", isDirectory: true)
     }
 
     var recordingsDirectory: URL {
-        appSupportDirectory.appendingPathComponent(audioDirectoryName, isDirectory: true)
+        self.appSupportDirectory.appendingPathComponent(self.audioDirectoryName, isDirectory: true)
     }
 
     func ensureDirectoryExists() throws {
-        if !fileManager.fileExists(atPath: recordingsDirectory.path) {
-            try fileManager.createDirectory(
-                at: recordingsDirectory,
-                withIntermediateDirectories: true
-            )
+        if !self.fileManager.fileExists(atPath: self.recordingsDirectory.path) {
+            try self.fileManager.createDirectory(
+                at: self.recordingsDirectory,
+                withIntermediateDirectories: true)
         }
     }
 
@@ -39,60 +37,58 @@ class AudioStorageManager {
     }
 
     func saveAudio(from temporaryURL: URL) throws -> String {
-        try ensureDirectoryExists()
+        try self.ensureDirectoryExists()
 
-        let fileName = generateFileName()
-        let destinationURL = recordingsDirectory.appendingPathComponent(fileName)
+        let fileName = self.generateFileName()
+        let destinationURL = self.recordingsDirectory.appendingPathComponent(fileName)
 
-        try fileManager.copyItem(at: temporaryURL, to: destinationURL)
+        try self.fileManager.copyItem(at: temporaryURL, to: destinationURL)
 
         return fileName
     }
 
     func audioURL(for fileName: String) -> URL {
-        recordingsDirectory.appendingPathComponent(fileName)
+        self.recordingsDirectory.appendingPathComponent(fileName)
     }
 
     func deleteAudio(fileName: String) throws {
-        let url = audioURL(for: fileName)
-        if fileManager.fileExists(atPath: url.path) {
-            try fileManager.removeItem(at: url)
+        let url = self.audioURL(for: fileName)
+        if self.fileManager.fileExists(atPath: url.path) {
+            try self.fileManager.removeItem(at: url)
         }
     }
 
     func revealInFinder(fileName: String) {
-        let url = audioURL(for: fileName)
+        let url = self.audioURL(for: fileName)
         NSWorkspace.shared.activateFileViewerSelecting([url])
     }
 
     func audioFileExists(fileName: String) -> Bool {
-        let url = audioURL(for: fileName)
-        return fileManager.fileExists(atPath: url.path)
+        let url = self.audioURL(for: fileName)
+        return self.fileManager.fileExists(atPath: url.path)
     }
 
     func cleanupOrphanedFiles(validFileNames: Set<String>) throws {
-        try ensureDirectoryExists()
+        try self.ensureDirectoryExists()
 
         let contents = try fileManager.contentsOfDirectory(
-            at: recordingsDirectory,
-            includingPropertiesForKeys: nil
-        )
+            at: self.recordingsDirectory,
+            includingPropertiesForKeys: nil)
 
         for fileURL in contents {
             let fileName = fileURL.lastPathComponent
             if !validFileNames.contains(fileName) {
-                try fileManager.removeItem(at: fileURL)
+                try self.fileManager.removeItem(at: fileURL)
             }
         }
     }
 
     func totalStorageUsed() throws -> Int64 {
-        try ensureDirectoryExists()
+        try self.ensureDirectoryExists()
 
         let contents = try fileManager.contentsOfDirectory(
-            at: recordingsDirectory,
-            includingPropertiesForKeys: [.fileSizeKey]
-        )
+            at: self.recordingsDirectory,
+            includingPropertiesForKeys: [.fileSizeKey])
 
         var totalSize: Int64 = 0
         for fileURL in contents {
