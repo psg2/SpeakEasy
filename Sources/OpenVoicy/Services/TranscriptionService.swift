@@ -76,7 +76,13 @@ class TranscriptionService {
             try await self.transcribeWithLocalWhisper(audioFileURL: audioFileURL, language: language)
         }
 
-        let processedText = self.applySnippetReplacements(rawText)
+        var processedText = self.applySnippetReplacements(rawText)
+
+        // Apply LLM enrichment if enabled and model is ready
+        if self.settings.llmEnrichmentEnabled, self.settings.isLLMReady {
+            processedText = try await self.enrichWithLLM(processedText)
+        }
+
         return (rawText, processedText)
     }
 
@@ -99,6 +105,30 @@ class TranscriptionService {
         }
 
         return processedText
+    }
+
+    // MARK: - LLM Enrichment
+
+    private func enrichWithLLM(_ text: String) async throws -> String {
+        log.info("Starting LLM enrichment...")
+
+        do {
+            // Load the model if needed
+            try await LocalLLMService.shared.loadModel(self.settings.selectedLLMModel.modelId)
+
+            // Enrich the transcription
+            let enrichedText = try await LocalLLMService.shared.enrichTranscription(
+                text,
+                temperature: self.settings.llmTemperature
+            )
+
+            log.info("LLM enrichment completed successfully")
+            return enrichedText
+        } catch {
+            log.warning("LLM enrichment failed, using original text: \(error.localizedDescription)")
+            // Fallback to original text if enrichment fails
+            return text
+        }
     }
 
     // MARK: - Local Whisper Transcription
