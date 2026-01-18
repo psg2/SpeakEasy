@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-build-test:
+    name: Lint, Build & Test
+    runs-on: macos-15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: |
+          # Try Xcode 16.x first, fallback to latest available
+          if [ -d "/Applications/Xcode_16.2.app" ]; then
+            sudo xcode-select -s /Applications/Xcode_16.2.app
+          elif [ -d "/Applications/Xcode_16.1.app" ]; then
+            sudo xcode-select -s /Applications/Xcode_16.1.app
+          elif [ -d "/Applications/Xcode_16.app" ]; then
+            sudo xcode-select -s /Applications/Xcode_16.app
+          fi
+          xcodebuild -version
+          swift --version
+
+      - name: Resolve Dependencies
+        run: xcodebuild -resolvePackageDependencies -project OpenVoicy.xcodeproj -scheme OpenVoicy
+
+      - name: Lint (SwiftFormat)
+        run: |
+          brew install swiftformat
+          swiftformat Sources Tests OpenVoicy --lint
+
+      - name: Lint (SwiftLint)
+        run: |
+          brew install swiftlint
+          swiftlint lint --strict
+
+      - name: Build
+        run: |
+          xcodebuild build \
+            -project OpenVoicy.xcodeproj \
+            -scheme OpenVoicy \
+            -configuration Release \
+            -destination "platform=macOS" \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Test
+        run: swift test --parallel

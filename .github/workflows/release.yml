@@ -1,0 +1,133 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag (e.g., v1.0.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Build and Release
+    runs-on: macos-15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Select Xcode
+        run: |
+          # Try Xcode 16.x first, fallback to latest available
+          if [ -d "/Applications/Xcode_16.2.app" ]; then
+            sudo xcode-select -s /Applications/Xcode_16.2.app
+          elif [ -d "/Applications/Xcode_16.1.app" ]; then
+            sudo xcode-select -s /Applications/Xcode_16.1.app
+          elif [ -d "/Applications/Xcode_16.app" ]; then
+            sudo xcode-select -s /Applications/Xcode_16.app
+          fi
+          xcodebuild -version
+          swift --version
+
+      - name: Determine Version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "tag=${{ inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Resolve Dependencies
+        run: xcodebuild -resolvePackageDependencies -project OpenVoicy.xcodeproj -scheme OpenVoicy
+
+      - name: Build Release
+        run: |
+          xcodebuild build \
+            -project OpenVoicy.xcodeproj \
+            -scheme OpenVoicy \
+            -configuration Release \
+            -derivedDataPath build \
+            -destination "platform=macOS" \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Create Archive
+        id: archive
+        run: |
+          APP_PATH="build/Build/Products/Release/OpenVoicy.app"
+          VERSION="${{ steps.version.outputs.tag }}"
+          ARCHIVE_NAME="OpenVoicy-${VERSION}-macOS.zip"
+
+          # Create ZIP archive
+          cd "$(dirname "$APP_PATH")"
+          ditto -c -k --keepParent "$(basename "$APP_PATH")" "${GITHUB_WORKSPACE}/${ARCHIVE_NAME}"
+
+          # Generate SHA256 checksum
+          cd "${GITHUB_WORKSPACE}"
+          shasum -a 256 "${ARCHIVE_NAME}" > "${ARCHIVE_NAME}.sha256"
+
+          echo "archive_name=${ARCHIVE_NAME}" >> $GITHUB_OUTPUT
+          echo "checksum_name=${ARCHIVE_NAME}.sha256" >> $GITHUB_OUTPUT
+
+      - name: Generate Release Notes
+        id: notes
+        run: |
+          VERSION="${{ steps.version.outputs.tag }}"
+
+          # Get previous tag
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+
+          if [ -n "$PREV_TAG" ]; then
+            echo "## Changes since ${PREV_TAG}" > release_notes.md
+            echo "" >> release_notes.md
+            git log --pretty=format:"- %s (%h)" ${PREV_TAG}..HEAD >> release_notes.md
+          else
+            echo "## Initial Release" > release_notes.md
+            echo "" >> release_notes.md
+            echo "First release of OpenVoicy!" >> release_notes.md
+          fi
+
+          echo "" >> release_notes.md
+          echo "---" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "### Installation" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "1. Download \`OpenVoicy-${VERSION}-macOS.zip\`" >> release_notes.md
+          echo "2. Extract the archive" >> release_notes.md
+          echo "3. Move \`OpenVoicy.app\` to your Applications folder" >> release_notes.md
+          echo "4. Open the app (you may need to right-click and select \"Open\" the first time)" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "**Note:** This is an unsigned build. On first launch, macOS will ask you to confirm you want to open an app from an unidentified developer." >> release_notes.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: OpenVoicy ${{ steps.version.outputs.tag }}
+          body_path: release_notes.md
+          draft: false
+          prerelease: ${{ contains(steps.version.outputs.tag, '-') }}
+          files: |
+            ${{ steps.archive.outputs.archive_name }}
+            ${{ steps.archive.outputs.checksum_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Artifacts (for workflow_dispatch)
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: OpenVoicy-${{ steps.version.outputs.tag }}
+          path: |
+            ${{ steps.archive.outputs.archive_name }}
+            ${{ steps.archive.outputs.checksum_name }}
