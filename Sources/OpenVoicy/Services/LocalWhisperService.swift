@@ -8,20 +8,20 @@ class LocalWhisperService {
     static let shared = LocalWhisperService()
 
     private var whisperKit: WhisperKit?
-    private var loadedModel: WhisperModel?
+    private var loadedModelId: String?
 
     private init() {
         log.whisper("LocalWhisperService initialized (WhisperKit)")
     }
 
-    func ensureModelLoaded(_ model: WhisperModel) async throws {
-        if loadedModel == model && whisperKit != nil {
-            log.whisper("✓ Model \(model.displayName) already loaded (skipping load)")
+    func ensureModelLoaded(_ modelId: String) async throws {
+        if loadedModelId == modelId && whisperKit != nil {
+            log.whisper("✓ Model \(modelId) already loaded (skipping load)")
             return
         }
 
         log.whisper("══════════════════════════════════════════")
-        log.whisper("MODEL LOADING: \(model.displayName)")
+        log.whisper("MODEL LOADING: \(modelId)")
         log.whisper("══════════════════════════════════════════")
 
         let totalLoadStart = CFAbsoluteTimeGetCurrent()
@@ -31,18 +31,18 @@ class LocalWhisperService {
             let unloadStart = CFAbsoluteTimeGetCurrent()
             log.whisper("Unloading previous model to free memory...")
             whisperKit = nil
-            loadedModel = nil
+            loadedModelId = nil
             let unloadTime = CFAbsoluteTimeGetCurrent() - unloadStart
             log.whisper("  → Unload time: \(String(format: "%.2f", unloadTime * 1000))ms")
         }
 
-        log.whisper("Initializing WhisperKit with model: \(model.whisperKitName)")
+        log.whisper("Initializing WhisperKit with model: \(modelId)")
         let initStart = CFAbsoluteTimeGetCurrent()
 
         do {
             // WhisperKit will download the model if not present
             whisperKit = try await WhisperKit(
-                model: model.whisperKitName,
+                model: modelId,
                 verbose: false,
                 logLevel: .none
             )
@@ -53,10 +53,10 @@ class LocalWhisperService {
             log.whisper("  → Total load time: \(String(format: "%.2f", totalLoadTime))s")
             log.whisper("══════════════════════════════════════════")
 
-            loadedModel = model
+            loadedModelId = modelId
         } catch {
             log.error("Failed to initialize WhisperKit: \(error.localizedDescription)")
-            throw LocalWhisperError.modelLoadFailed(model.displayName)
+            throw LocalWhisperError.modelLoadFailed(modelId)
         }
     }
 
@@ -68,12 +68,12 @@ class LocalWhisperService {
         log.whisper("══════════════════════════════════════════")
         log.whisper("Audio file: \(audioFileURL.lastPathComponent)")
 
-        let model = SettingsManager.shared.selectedWhisperModel
-        log.whisper("Model: \(model.displayName)")
+        let modelId = SettingsManager.shared.selectedModelId
+        log.whisper("Model: \(modelId)")
 
         // Step 1: Load model (if needed)
         let modelLoadStart = CFAbsoluteTimeGetCurrent()
-        try await ensureModelLoaded(model)
+        try await ensureModelLoaded(modelId)
         let modelLoadTime = CFAbsoluteTimeGetCurrent() - modelLoadStart
 
         guard let whisperKit = whisperKit else {
@@ -131,7 +131,7 @@ class LocalWhisperService {
 
     func unloadModel() {
         whisperKit = nil
-        loadedModel = nil
+        loadedModelId = nil
     }
 }
 

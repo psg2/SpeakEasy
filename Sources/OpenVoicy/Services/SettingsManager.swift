@@ -45,6 +45,15 @@ class SettingsManager: ObservableObject {
     @Published var selectedWhisperModel: WhisperModel {
         didSet {
             self.defaults.set(self.selectedWhisperModel.rawValue, forKey: "selected_whisper_model")
+            // Also update the model ID for consistency
+            self.selectedModelId = self.selectedWhisperModel.whisperKitName
+        }
+    }
+
+    /// The selected model ID (supports dynamic models from HuggingFace)
+    @Published var selectedModelId: String {
+        didSet {
+            self.defaults.set(self.selectedModelId, forKey: "selected_model_id")
         }
     }
 
@@ -65,12 +74,21 @@ class SettingsManager: ObservableObject {
             self.transcriptionProvider = .openAI
         }
 
+        let whisperModel: WhisperModel
         if let modelRaw = self.defaults.string(forKey: "selected_whisper_model"),
            let model = WhisperModel(rawValue: modelRaw)
         {
-            self.selectedWhisperModel = model
+            whisperModel = model
         } else {
-            self.selectedWhisperModel = .base
+            whisperModel = .base
+        }
+        self.selectedWhisperModel = whisperModel
+
+        // Load selected model ID (for dynamic models)
+        if let modelId = self.defaults.string(forKey: "selected_model_id") {
+            self.selectedModelId = modelId
+        } else {
+            self.selectedModelId = whisperModel.whisperKitName
         }
     }
 
@@ -84,7 +102,7 @@ class SettingsManager: ObservableObject {
         let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
         let modelDir = documents
             .appendingPathComponent("huggingface/models/argmaxinc/whisperkit-coreml")
-            .appendingPathComponent(selectedWhisperModel.whisperKitName)
+            .appendingPathComponent(selectedModelId)
         var isDirectory: ObjCBool = false
         if FileManager.default.fileExists(atPath: modelDir.path, isDirectory: &isDirectory) {
             if isDirectory.boolValue {

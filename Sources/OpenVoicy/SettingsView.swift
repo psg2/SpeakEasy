@@ -27,6 +27,8 @@ struct SettingsView: View {
     @State private var shortcutModifierFlags: Int = 2048
     @State private var selectedProvider: TranscriptionProvider = .openAI
     @State private var selectedModel: WhisperModel = .base
+    @State private var selectedModelId: String = "openai_whisper-base"
+    @State private var showAllModels: Bool = false
 
     var body: some View {
         HStack(spacing: 0) {
@@ -255,7 +257,12 @@ struct SettingsView: View {
 
                 Spacer()
 
-                Button(action: { self.openModelsFolder() }) {
+                if self.modelManager.isLoadingModels {
+                    ProgressView()
+                        .scaleEffect(0.7)
+                }
+
+                Button(action: { self.modelManager.openModelsFolder() }) {
                     HStack(spacing: 4) {
                         Image(systemName: "folder")
                         Text("Show in Finder")
@@ -267,9 +274,33 @@ struct SettingsView: View {
             }
 
             VStack(spacing: 12) {
+                // Recommended models (always shown)
                 VStack(spacing: 8) {
                     ForEach(WhisperModel.allCases, id: \.self) { model in
                         self.modelOption(model)
+                    }
+                }
+
+                // Toggle to show all models
+                Divider()
+
+                Button(action: { withAnimation { self.showAllModels.toggle() } }) {
+                    HStack {
+                        Text(self.showAllModels ? "Hide additional models" : "Show all \(self.modelManager.availableModels.count) models")
+                            .font(.caption)
+                        Image(systemName: self.showAllModels ? "chevron.up" : "chevron.down")
+                            .font(.caption)
+                    }
+                    .foregroundColor(.accentColor)
+                }
+                .buttonStyle(.plain)
+
+                // Additional models (from HuggingFace)
+                if self.showAllModels {
+                    VStack(spacing: 8) {
+                        ForEach(self.additionalModels) { model in
+                            self.dynamicModelOption(model)
+                        }
                     }
                 }
 
@@ -290,6 +321,12 @@ struct SettingsView: View {
         }
     }
 
+    /// Models from HuggingFace that aren't in the recommended list
+    private var additionalModels: [WhisperKitModel] {
+        let recommendedIds = Set(WhisperModel.allCases.map(\.whisperKitName))
+        return self.modelManager.availableModels.filter { !recommendedIds.contains($0.id) }
+    }
+
     private func openModelsFolder() {
         let url = self.modelManager.modelsDirectory
         try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
@@ -304,10 +341,14 @@ struct SettingsView: View {
     }
 
     private func modelOption(_ model: WhisperModel) -> some View {
-        Button(action: { self.selectedModel = model }) {
+        let isSelected = self.selectedModelId == model.whisperKitName
+        return Button(action: {
+            self.selectedModel = model
+            self.selectedModelId = model.whisperKitName
+        }) {
             HStack {
-                Image(systemName: self.selectedModel == model ? "checkmark.circle.fill" : "circle")
-                    .foregroundColor(self.selectedModel == model ? .accentColor : .secondary)
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .foregroundColor(isSelected ? .accentColor : .secondary)
 
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 8) {
@@ -333,7 +374,7 @@ struct SettingsView: View {
                 self.modelActionButton(for: model)
             }
             .padding(10)
-            .background(self.selectedModel == model ? Color.accentColor.opacity(0.1) : Color.clear)
+            .background(isSelected ? Color.accentColor.opacity(0.1) : Color.clear)
             .cornerRadius(6)
         }
         .buttonStyle(.plain)
@@ -389,6 +430,109 @@ struct SettingsView: View {
 
         case .error:
             Button(action: { self.modelManager.downloadModel(model) }) {
+                Image(systemName: "arrow.clockwise.circle")
+                    .font(.title3)
+                    .foregroundColor(.orange)
+            }
+            .buttonStyle(.plain)
+            .disabled(self.modelManager.isDownloading)
+            .help("Retry download")
+        }
+    }
+
+    // MARK: - Dynamic Model Option (for HuggingFace models)
+
+    private func dynamicModelOption(_ model: WhisperKitModel) -> some View {
+        let isSelected = self.selectedModelId == model.id
+        return Button(action: {
+            self.selectedModelId = model.id
+            // Clear enum selection since we're using a dynamic model
+            self.selectedModel = .base  // Reset to default, but we'll use selectedModelId
+        }) {
+            HStack {
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .foregroundColor(isSelected ? .accentColor : .secondary)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 8) {
+                        Text(model.displayName)
+                            .font(.body)
+                            .fontWeight(.medium)
+
+                        Text(model.sizeDescription)
+                            .font(.caption)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color.secondary.opacity(0.2))
+                            .cornerRadius(4)
+                    }
+
+                    Text(model.qualityDescription)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+
+                Spacer()
+
+                self.dynamicModelActionButton(for: model)
+            }
+            .padding(10)
+            .background(isSelected ? Color.accentColor.opacity(0.1) : Color.clear)
+            .cornerRadius(6)
+        }
+        .buttonStyle(.plain)
+    }
+
+    @ViewBuilder
+    private func dynamicModelActionButton(for model: WhisperKitModel) -> some View {
+        let status = self.modelManager.getStatus(for: model.id)
+
+        switch status {
+        case .downloaded:
+            HStack(spacing: 8) {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundColor(.green)
+
+                Button(action: { try? self.modelManager.deleteModel(model.id) }) {
+                    Image(systemName: "trash")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .buttonStyle(.plain)
+                .help("Delete model")
+            }
+
+        case let .downloading(progress):
+            HStack(spacing: 8) {
+                ProgressView(value: progress)
+                    .frame(width: 60)
+
+                Text("\(Int(progress * 100))%")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .frame(width: 32, alignment: .trailing)
+
+                Button(action: { self.modelManager.cancelDownload() }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundColor(.secondary)
+                }
+                .buttonStyle(.plain)
+                .help("Cancel download")
+            }
+
+        case .notDownloaded:
+            Button(action: { self.modelManager.downloadModel(model.id) }) {
+                Image(systemName: "arrow.down.circle")
+                    .font(.title3)
+                    .foregroundColor(.accentColor)
+            }
+            .buttonStyle(.plain)
+            .disabled(self.modelManager.isDownloading)
+            .opacity(self.modelManager.isDownloading ? 0.5 : 1)
+            .help("Download model")
+
+        case .error:
+            Button(action: { self.modelManager.downloadModel(model.id) }) {
                 Image(systemName: "arrow.clockwise.circle")
                     .font(.title3)
                     .foregroundColor(.orange)
@@ -526,6 +670,7 @@ struct SettingsView: View {
         self.shortcutModifierFlags = self.settings.shortcutModifierFlags
         self.selectedProvider = self.settings.transcriptionProvider
         self.selectedModel = self.settings.selectedWhisperModel
+        self.selectedModelId = self.settings.selectedModelId
     }
 
     private func saveSettings() {
@@ -533,6 +678,7 @@ struct SettingsView: View {
         self.settings.language = self.language.isEmpty ? nil : self.language
         self.settings.transcriptionProvider = self.selectedProvider
         self.settings.selectedWhisperModel = self.selectedModel
+        self.settings.selectedModelId = self.selectedModelId
 
         if self.settings.shortcutKeyCode != self.shortcutKeyCode ||
             self.settings.shortcutModifierFlags != self.shortcutModifierFlags
