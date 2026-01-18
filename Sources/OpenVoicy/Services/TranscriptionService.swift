@@ -65,13 +65,15 @@ class TranscriptionService {
         return result.processedText
     }
 
-    func transcribeWithSnippets(audioFileURL: URL, language: String? = nil) async throws -> (rawText: String, processedText: String) {
-        let rawText: String
-        switch self.settings.transcriptionProvider {
+    func transcribeWithSnippets(
+        audioFileURL: URL,
+        language: String? = nil) async throws -> (rawText: String, processedText: String)
+    {
+        let rawText: String = switch self.settings.transcriptionProvider {
         case .openAI:
-            rawText = try await self.transcribeWithOpenAI(audioFileURL: audioFileURL, language: language)
+            try await self.transcribeWithOpenAI(audioFileURL: audioFileURL, language: language)
         case .localWhisper:
-            rawText = try await self.transcribeWithLocalWhisper(audioFileURL: audioFileURL, language: language)
+            try await self.transcribeWithLocalWhisper(audioFileURL: audioFileURL, language: language)
         }
 
         let processedText = self.applySnippetReplacements(rawText)
@@ -110,8 +112,6 @@ class TranscriptionService {
             return try await LocalWhisperService.shared.transcribe(
                 audioFileURL: audioFileURL,
                 language: language)
-        } catch let error as LocalWhisperError {
-            throw TranscriptionError.localWhisperError(error.localizedDescription)
         } catch {
             throw TranscriptionError.localWhisperError(error.localizedDescription)
         }
@@ -120,7 +120,7 @@ class TranscriptionService {
     // MARK: - OpenAI API Transcription
 
     private func transcribeWithOpenAI(audioFileURL: URL, language: String?) async throws -> String {
-        guard let apiKey = self.settings.apiKey as String?, !apiKey.isEmpty else {
+        guard !self.settings.apiKey.isEmpty else {
             throw TranscriptionError.invalidApiKey
         }
 
@@ -132,7 +132,7 @@ class TranscriptionService {
             return try await self.openAIClient.transcribe(
                 audioData: audioData,
                 language: language,
-                apiKey: apiKey)
+                apiKey: self.settings.apiKey)
         } catch let error as OpenAIError {
             throw TranscriptionError(from: error)
         }

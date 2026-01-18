@@ -123,4 +123,14 @@ class SettingsManager: ObservableObject {
             self.isLocalWhisperReady
         }
     }
+
+    /// Returns the current model name based on provider selection
+    var currentModelName: String {
+        switch self.transcriptionProvider {
+        case .openAI:
+            "whisper-1"
+        case .localWhisper:
+            self.selectedWhisperModel.displayName
+        }
+    }
 }

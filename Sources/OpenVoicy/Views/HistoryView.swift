@@ -156,7 +156,7 @@ public struct HistoryView: View {
 
             self.statItem(icon: "textformat.size", value: "\(self.totalWordCount)", label: "words", color: .green)
 
-            if let avgWPM = averageWordsPerMinute {
+            if let avgWPM = self.averageWordsPerMinute {
                 Spacer()
 
                 Divider()
@@ -403,7 +403,7 @@ struct TranscriptionTableRow: View {
 
     private var metadataView: some View {
         HStack(spacing: 12) {
-            if let time = transcription.transcriptionTimeSeconds {
+            if let time = self.transcription.transcriptionTimeSeconds {
                 HStack(spacing: 3) {
                     Image(systemName: "timer")
                         .font(.caption2)
@@ -413,30 +413,16 @@ struct TranscriptionTableRow: View {
                 .foregroundColor(.orange.opacity(0.8))
             }
 
-            if transcription.rawText != nil, transcription.rawText != transcription.text {
-                HStack(spacing: 3) {
-                    Image(systemName: "text.badge.checkmark")
-                        .font(.caption)
-                }
-                .padding(.horizontal, 6)
-                .padding(.vertical, 3)
-                .background(Color.green.opacity(0.15))
-                .cornerRadius(4)
-                .foregroundColor(.green)
-                .help("Snippets applied")
+            if self.transcription.rawText != nil, self.transcription.rawText != self.transcription.text {
+                MetadataBadge(icon: "text.badge.checkmark", color: .green)
+                    .help("Snippets applied")
             }
 
-            if let provider = transcription.provider {
-                HStack(spacing: 3) {
-                    Image(systemName: provider.icon)
-                    Text(self.transcription.modelName ?? (provider == .openAI ? "API" : "Local"))
-                }
-                .font(.caption)
-                .padding(.horizontal, 6)
-                .padding(.vertical, 3)
-                .background(Color.secondary.opacity(0.15))
-                .cornerRadius(4)
-                .foregroundColor(.secondary)
+            if let provider = self.transcription.provider {
+                MetadataBadge(
+                    icon: provider.icon,
+                    text: self.transcription.modelName ?? (provider == .openAI ? "API" : "Local"),
+                    color: .secondary)
             }
         }
     }
@@ -483,5 +469,28 @@ struct TranscriptionTableRow: View {
             .handCursorOnHover()
         }
         .foregroundColor(.secondary)
+    }
+}
+
+// MARK: - Reusable Badge
+
+private struct MetadataBadge: View {
+    let icon: String
+    var text: String?
+    let color: Color
+
+    var body: some View {
+        HStack(spacing: 3) {
+            Image(systemName: self.icon)
+            if let text = self.text {
+                Text(text)
+            }
+        }
+        .font(.caption)
+        .padding(.horizontal, 6)
+        .padding(.vertical, 3)
+        .background(self.color.opacity(0.15))
+        .cornerRadius(4)
+        .foregroundColor(self.color)
     }
 }

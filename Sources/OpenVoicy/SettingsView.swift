@@ -320,7 +320,6 @@ struct SettingsView: View {
     @State private var snippets: [String: String] = [:]
     @State private var newSnippetKey: String = ""
     @State private var newSnippetValue: String = ""
-    @State private var editingSnippetKey: String?
     @State private var showOverwriteConfirmation: Bool = false
     @State private var pendingSnippetKey: String = ""
     @State private var pendingSnippetValue: String = ""
@@ -331,14 +330,13 @@ struct SettingsView: View {
     }
 
     private var canSave: Bool {
-        // If OpenAI is selected and there's an API key, it must be validated successfully
-        if self.selectedProvider == .openAI, !self.apiKey.isEmpty {
-            if case .success = self.apiKeyValidationResult {
-                return true
-            }
-            return false
+        guard self.selectedProvider == .openAI, !self.apiKey.isEmpty else {
+            return true
         }
-        return true
+        if case .success = self.apiKeyValidationResult {
+            return true
+        }
+        return false
     }
 
     var body: some View {
@@ -480,7 +478,8 @@ struct SettingsView: View {
         VStack(spacing: 20) {
             self.settingsCard("Text Snippets") {
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("Snippets let you replace text in your transcriptions. When you say a snippet key, it will be automatically replaced with its value.")
+                    Text(
+                        "Snippets let you replace text in your transcriptions. When you say a snippet key, it will be automatically replaced with its value.")
                         .font(.caption)
                         .foregroundColor(.secondary)
 

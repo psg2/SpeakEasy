@@ -124,10 +124,7 @@ public class AppState: ObservableObject {
     private func transcribeAndSave(temporaryURL: URL) async {
         let duration = self.recordingStartTime.map { Date().timeIntervalSince($0) }
         let provider = self.settings.transcriptionProvider
-        let modelName: String? = switch provider {
-        case .openAI: "whisper-1"
-        case .localWhisper: self.settings.selectedWhisperModel.displayName
-        }
+        let modelName = self.settings.currentModelName
 
         do {
             let audioFileName = try audioStorage.saveAudio(from: temporaryURL)
@@ -199,9 +196,7 @@ public class AppState: ObservableObject {
             record.transcriptionStatus = .completed
             record.transcriptionTimeSeconds = transcriptionTime
             record.provider = self.settings.transcriptionProvider
-            record.modelName = self.settings.transcriptionProvider == .openAI
-                ? "whisper-1"
-                : self.settings.selectedWhisperModel.displayName
+            record.modelName = self.settings.currentModelName
             try? self.modelContext.save()
 
         } catch {
