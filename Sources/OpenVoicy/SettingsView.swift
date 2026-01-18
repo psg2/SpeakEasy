@@ -356,7 +356,7 @@ struct SettingsView: View {
                             .font(.body)
                             .fontWeight(.medium)
 
-                        Text(model.sizeDescription)
+                        Text(self.modelManager.getModelSizeDescription(model.whisperKitName))
                             .font(.caption)
                             .padding(.horizontal, 6)
                             .padding(.vertical, 2)
@@ -459,7 +459,7 @@ struct SettingsView: View {
                             .font(.body)
                             .fontWeight(.medium)
 
-                        Text(model.sizeDescription)
+                        Text(self.modelManager.getModelSizeDescription(model.id))
                             .font(.caption)
                             .padding(.horizontal, 6)
                             .padding(.vertical, 2)

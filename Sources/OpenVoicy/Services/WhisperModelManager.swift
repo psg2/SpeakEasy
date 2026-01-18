@@ -22,6 +22,9 @@ class WhisperModelManager: ObservableObject {
     @Published private(set) var isDownloading = false
     @Published private(set) var currentlyDownloadingModelId: String?
 
+    // Actual model sizes fetched from HuggingFace (by model ID)
+    @Published var modelSizes: [String: Int64] = [:]
+
     private var downloadTask: Task<Void, Never>?
 
     // Recommended models to show by default (curated list)
@@ -51,24 +54,48 @@ class WhisperModelManager: ObservableObject {
         modelLoadError = nil
 
         do {
-            let url = URL(string: "https://huggingface.co/api/models/argmaxinc/whisperkit-coreml/tree/main")!
+            // Fetch recursive tree to get all files with sizes
+            let url = URL(string: "https://huggingface.co/api/models/argmaxinc/whisperkit-coreml/tree/main?recursive=true")!
             let (data, _) = try await URLSession.shared.data(from: url)
 
             // Parse the JSON response
             if let items = try JSONSerialization.jsonObject(with: data) as? [[String: Any]] {
-                var models: [WhisperKitModel] = []
+                var modelSet = Set<String>()
+                var sizes: [String: Int64] = [:]
 
                 for item in items {
-                    if let type = item["type"] as? String,
-                       type == "directory",
-                       let path = item["path"] as? String
-                    {
-                        // Filter to only include whisper models, not config files
-                        if path.contains("whisper") {
-                            models.append(WhisperKitModel(id: path))
+                    guard let path = item["path"] as? String else { continue }
+
+                    // Extract top-level model directory
+                    let components = path.split(separator: "/")
+                    guard let modelId = components.first.map(String.init),
+                          modelId.contains("whisper") else { continue }
+
+                    modelSet.insert(modelId)
+
+                    // Sum file sizes for each model
+                    if let type = item["type"] as? String, type == "file" {
+                        // Use LFS size if available (for large files), otherwise regular size
+                        let fileSize: Int64
+                        if let lfs = item["lfs"] as? [String: Any],
+                           let lfsSize = lfs["size"] as? Int64 {
+                            fileSize = lfsSize
+                        } else if let size = item["size"] as? Int64 {
+                            fileSize = size
+                        } else if let size = item["size"] as? Int {
+                            fileSize = Int64(size)
+                        } else {
+                            continue
                         }
+                        sizes[modelId, default: 0] += fileSize
                     }
                 }
+
+                // Store actual sizes
+                modelSizes = sizes
+
+                // Create model objects
+                var models = modelSet.map { WhisperKitModel(id: $0) }
 
                 // Sort models: recommended first, then by size (smaller first)
                 models.sort { a, b in
@@ -78,12 +105,14 @@ class WhisperModelManager: ObservableObject {
                     if aRecommended && !bRecommended { return true }
                     if !aRecommended && bRecommended { return false }
 
-                    // Both recommended or both not - sort by size
-                    return a.estimatedSizeBytes < b.estimatedSizeBytes
+                    // Both recommended or both not - sort by actual size
+                    let aSize = sizes[a.id] ?? a.estimatedSizeBytes
+                    let bSize = sizes[b.id] ?? b.estimatedSizeBytes
+                    return aSize < bSize
                 }
 
                 availableModels = models
-                log.info("Fetched \(models.count) models from HuggingFace")
+                log.info("Fetched \(models.count) models from HuggingFace with actual sizes")
 
                 // Refresh download status for all models
                 refreshAllDownloadStatus()
@@ -95,6 +124,19 @@ class WhisperModelManager: ObservableObject {
         }
 
         isLoadingModels = false
+    }
+
+    /// Get the actual size for a model (from HuggingFace API) or fall back to estimate
+    func getModelSize(_ modelId: String) -> Int64 {
+        modelSizes[modelId] ?? WhisperKitModel(id: modelId).estimatedSizeBytes
+    }
+
+    /// Get formatted size string for a model
+    func getModelSizeDescription(_ modelId: String) -> String {
+        let size = getModelSize(modelId)
+        let formatter = ByteCountFormatter()
+        formatter.countStyle = .file
+        return formatter.string(fromByteCount: size)
     }
 
     // MARK: - WhisperKit Cache Directory
