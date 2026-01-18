@@ -2,6 +2,10 @@ import AppKit
 import SwiftData
 import SwiftUI
 
+extension Notification.Name {
+    static let showSettings = Notification.Name("showSettings")
+}
+
 public struct HistoryView: View {
     @ObservedObject var appState: AppState
 
@@ -15,7 +19,6 @@ public struct HistoryView: View {
     @Query(sort: \TranscriptionRecord.createdAt, order: .reverse)
     private var transcriptions: [TranscriptionRecord]
 
-    @State private var showSettings = false
     @State private var selectedTranscription: TranscriptionRecord?
     @State private var searchText = ""
 
@@ -43,9 +46,6 @@ public struct HistoryView: View {
             self.mainContent
         }
         .frame(minWidth: 700, minHeight: 500)
-        .sheet(isPresented: self.$showSettings) {
-            SettingsView()
-        }
         .sheet(item: self.$selectedTranscription) { transcription in
             TranscriptionDetailView(
                 transcription: transcription,
@@ -77,7 +77,9 @@ public struct HistoryView: View {
                 self.recordingIndicator
             }
 
-            Button(action: { self.showSettings = true }) {
+            Button(action: {
+                NotificationCenter.default.post(name: .showSettings, object: nil)
+            }) {
                 Image(systemName: "gear")
                     .font(.title3)
             }

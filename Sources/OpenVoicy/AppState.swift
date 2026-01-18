@@ -158,8 +158,6 @@ public class AppState: ObservableObject {
 
             self.accessibility.copyToClipboard(text)
 
-            NSApp.hide(nil)
-
             try? await Task.sleep(nanoseconds: 100 * 1_000_000)
 
             if self.accessibility.checkPermissions() {
