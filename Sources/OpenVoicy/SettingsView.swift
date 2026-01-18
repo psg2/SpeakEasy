@@ -15,6 +15,289 @@ enum SettingsTab: String, CaseIterable {
     }
 }
 
+struct WhisperLanguage: Identifiable, Hashable {
+    let id: String // ISO 639-1 code
+    let name: String
+    let flag: String
+
+    var displayText: String {
+        "\(self.flag) \(self.name)"
+    }
+
+    func matches(_ query: String) -> Bool {
+        let lowercasedQuery = query.lowercased()
+        return self.name.lowercased().contains(lowercasedQuery) ||
+            self.id.lowercased().contains(lowercasedQuery)
+    }
+
+    static let autoDetect = WhisperLanguage(id: "", name: "Auto-detect", flag: "🌐")
+
+    static let allLanguages: [WhisperLanguage] = [
+        WhisperLanguage(id: "en", name: "English", flag: "🇬🇧"),
+        WhisperLanguage(id: "zh", name: "Chinese", flag: "🇨🇳"),
+        WhisperLanguage(id: "de", name: "German", flag: "🇩🇪"),
+        WhisperLanguage(id: "es", name: "Spanish", flag: "🇪🇸"),
+        WhisperLanguage(id: "ru", name: "Russian", flag: "🇷🇺"),
+        WhisperLanguage(id: "ko", name: "Korean", flag: "🇰🇷"),
+        WhisperLanguage(id: "fr", name: "French", flag: "🇫🇷"),
+        WhisperLanguage(id: "ja", name: "Japanese", flag: "🇯🇵"),
+        WhisperLanguage(id: "pt", name: "Portuguese", flag: "🇵🇹"),
+        WhisperLanguage(id: "tr", name: "Turkish", flag: "🇹🇷"),
+        WhisperLanguage(id: "pl", name: "Polish", flag: "🇵🇱"),
+        WhisperLanguage(id: "ca", name: "Catalan", flag: "🇪🇸"),
+        WhisperLanguage(id: "nl", name: "Dutch", flag: "🇳🇱"),
+        WhisperLanguage(id: "ar", name: "Arabic", flag: "🇸🇦"),
+        WhisperLanguage(id: "sv", name: "Swedish", flag: "🇸🇪"),
+        WhisperLanguage(id: "it", name: "Italian", flag: "🇮🇹"),
+        WhisperLanguage(id: "id", name: "Indonesian", flag: "🇮🇩"),
+        WhisperLanguage(id: "hi", name: "Hindi", flag: "🇮🇳"),
+        WhisperLanguage(id: "fi", name: "Finnish", flag: "🇫🇮"),
+        WhisperLanguage(id: "vi", name: "Vietnamese", flag: "🇻🇳"),
+        WhisperLanguage(id: "he", name: "Hebrew", flag: "🇮🇱"),
+        WhisperLanguage(id: "uk", name: "Ukrainian", flag: "🇺🇦"),
+        WhisperLanguage(id: "el", name: "Greek", flag: "🇬🇷"),
+        WhisperLanguage(id: "ms", name: "Malay", flag: "🇲🇾"),
+        WhisperLanguage(id: "cs", name: "Czech", flag: "🇨🇿"),
+        WhisperLanguage(id: "ro", name: "Romanian", flag: "🇷🇴"),
+        WhisperLanguage(id: "da", name: "Danish", flag: "🇩🇰"),
+        WhisperLanguage(id: "hu", name: "Hungarian", flag: "🇭🇺"),
+        WhisperLanguage(id: "ta", name: "Tamil", flag: "🇮🇳"),
+        WhisperLanguage(id: "no", name: "Norwegian", flag: "🇳🇴"),
+        WhisperLanguage(id: "th", name: "Thai", flag: "🇹🇭"),
+        WhisperLanguage(id: "ur", name: "Urdu", flag: "🇵🇰"),
+        WhisperLanguage(id: "hr", name: "Croatian", flag: "🇭🇷"),
+        WhisperLanguage(id: "bg", name: "Bulgarian", flag: "🇧🇬"),
+        WhisperLanguage(id: "lt", name: "Lithuanian", flag: "🇱🇹"),
+        WhisperLanguage(id: "la", name: "Latin", flag: "🇻🇦"),
+        WhisperLanguage(id: "mi", name: "Maori", flag: "🇳🇿"),
+        WhisperLanguage(id: "ml", name: "Malayalam", flag: "🇮🇳"),
+        WhisperLanguage(id: "cy", name: "Welsh", flag: "🏴󠁧󠁢󠁷󠁬󠁳󠁿"),
+        WhisperLanguage(id: "sk", name: "Slovak", flag: "🇸🇰"),
+        WhisperLanguage(id: "te", name: "Telugu", flag: "🇮🇳"),
+        WhisperLanguage(id: "fa", name: "Persian", flag: "🇮🇷"),
+        WhisperLanguage(id: "lv", name: "Latvian", flag: "🇱🇻"),
+        WhisperLanguage(id: "bn", name: "Bengali", flag: "🇧🇩"),
+        WhisperLanguage(id: "sr", name: "Serbian", flag: "🇷🇸"),
+        WhisperLanguage(id: "az", name: "Azerbaijani", flag: "🇦🇿"),
+        WhisperLanguage(id: "sl", name: "Slovenian", flag: "🇸🇮"),
+        WhisperLanguage(id: "kn", name: "Kannada", flag: "🇮🇳"),
+        WhisperLanguage(id: "et", name: "Estonian", flag: "🇪🇪"),
+        WhisperLanguage(id: "mk", name: "Macedonian", flag: "🇲🇰"),
+        WhisperLanguage(id: "br", name: "Breton", flag: "🇫🇷"),
+        WhisperLanguage(id: "eu", name: "Basque", flag: "🇪🇸"),
+        WhisperLanguage(id: "is", name: "Icelandic", flag: "🇮🇸"),
+        WhisperLanguage(id: "hy", name: "Armenian", flag: "🇦🇲"),
+        WhisperLanguage(id: "ne", name: "Nepali", flag: "🇳🇵"),
+        WhisperLanguage(id: "mn", name: "Mongolian", flag: "🇲🇳"),
+        WhisperLanguage(id: "bs", name: "Bosnian", flag: "🇧🇦"),
+        WhisperLanguage(id: "kk", name: "Kazakh", flag: "🇰🇿"),
+        WhisperLanguage(id: "sq", name: "Albanian", flag: "🇦🇱"),
+        WhisperLanguage(id: "sw", name: "Swahili", flag: "🇹🇿"),
+        WhisperLanguage(id: "gl", name: "Galician", flag: "🇪🇸"),
+        WhisperLanguage(id: "mr", name: "Marathi", flag: "🇮🇳"),
+        WhisperLanguage(id: "pa", name: "Punjabi", flag: "🇮🇳"),
+        WhisperLanguage(id: "si", name: "Sinhala", flag: "🇱🇰"),
+        WhisperLanguage(id: "km", name: "Khmer", flag: "🇰🇭"),
+        WhisperLanguage(id: "sn", name: "Shona", flag: "🇿🇼"),
+        WhisperLanguage(id: "yo", name: "Yoruba", flag: "🇳🇬"),
+        WhisperLanguage(id: "so", name: "Somali", flag: "🇸🇴"),
+        WhisperLanguage(id: "af", name: "Afrikaans", flag: "🇿🇦"),
+        WhisperLanguage(id: "oc", name: "Occitan", flag: "🇫🇷"),
+        WhisperLanguage(id: "ka", name: "Georgian", flag: "🇬🇪"),
+        WhisperLanguage(id: "be", name: "Belarusian", flag: "🇧🇾"),
+        WhisperLanguage(id: "tg", name: "Tajik", flag: "🇹🇯"),
+        WhisperLanguage(id: "sd", name: "Sindhi", flag: "🇵🇰"),
+        WhisperLanguage(id: "gu", name: "Gujarati", flag: "🇮🇳"),
+        WhisperLanguage(id: "am", name: "Amharic", flag: "🇪🇹"),
+        WhisperLanguage(id: "yi", name: "Yiddish", flag: "🇮🇱"),
+        WhisperLanguage(id: "lo", name: "Lao", flag: "🇱🇦"),
+        WhisperLanguage(id: "uz", name: "Uzbek", flag: "🇺🇿"),
+        WhisperLanguage(id: "fo", name: "Faroese", flag: "🇫🇴"),
+        WhisperLanguage(id: "ht", name: "Haitian Creole", flag: "🇭🇹"),
+        WhisperLanguage(id: "ps", name: "Pashto", flag: "🇦🇫"),
+        WhisperLanguage(id: "tk", name: "Turkmen", flag: "🇹🇲"),
+        WhisperLanguage(id: "nn", name: "Nynorsk", flag: "🇳🇴"),
+        WhisperLanguage(id: "mt", name: "Maltese", flag: "🇲🇹"),
+        WhisperLanguage(id: "sa", name: "Sanskrit", flag: "🇮🇳"),
+        WhisperLanguage(id: "lb", name: "Luxembourgish", flag: "🇱🇺"),
+        WhisperLanguage(id: "my", name: "Myanmar", flag: "🇲🇲"),
+        WhisperLanguage(id: "bo", name: "Tibetan", flag: "🇨🇳"),
+        WhisperLanguage(id: "tl", name: "Tagalog", flag: "🇵🇭"),
+        WhisperLanguage(id: "mg", name: "Malagasy", flag: "🇲🇬"),
+        WhisperLanguage(id: "as", name: "Assamese", flag: "🇮🇳"),
+        WhisperLanguage(id: "tt", name: "Tatar", flag: "🇷🇺"),
+        WhisperLanguage(id: "haw", name: "Hawaiian", flag: "🇺🇸"),
+        WhisperLanguage(id: "ln", name: "Lingala", flag: "🇨🇩"),
+        WhisperLanguage(id: "ha", name: "Hausa", flag: "🇳🇬"),
+        WhisperLanguage(id: "ba", name: "Bashkir", flag: "🇷🇺"),
+        WhisperLanguage(id: "jw", name: "Javanese", flag: "🇮🇩"),
+        WhisperLanguage(id: "su", name: "Sundanese", flag: "🇮🇩"),
+        WhisperLanguage(id: "yue", name: "Cantonese", flag: "🇭🇰"),
+    ]
+}
+
+struct LanguageSearchField: View {
+    @Binding var selectedLanguage: WhisperLanguage
+    @State private var isShowingPopover: Bool = false
+
+    var body: some View {
+        Button(action: {
+            self.isShowingPopover.toggle()
+        }) {
+            HStack(spacing: 8) {
+                Text(self.selectedLanguage.flag)
+                    .font(.title3)
+
+                Text(self.selectedLanguage.name)
+                    .foregroundColor(.primary)
+
+                Spacer()
+
+                Image(systemName: "chevron.down")
+                    .foregroundColor(.secondary)
+                    .rotationEffect(.degrees(self.isShowingPopover ? 180 : 0))
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(Color(NSColor.textBackgroundColor))
+            .cornerRadius(6)
+            .overlay(
+                RoundedRectangle(cornerRadius: 6)
+                    .stroke(Color.secondary.opacity(0.3), lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+        .frame(width: 220)
+        .popover(isPresented: self.$isShowingPopover, arrowEdge: .bottom) {
+            LanguagePickerPopover(
+                selectedLanguage: self.$selectedLanguage,
+                isPresented: self.$isShowingPopover)
+        }
+    }
+}
+
+struct LanguagePickerPopover: View {
+    @Binding var selectedLanguage: WhisperLanguage
+    @Binding var isPresented: Bool
+    @State private var searchText: String = ""
+    @State private var highlightedIndex: Int = 0
+    @State private var displayedLanguages: [WhisperLanguage] = []
+    @FocusState private var isSearchFocused: Bool
+
+    private static let allOptions: [WhisperLanguage] = [WhisperLanguage.autoDetect] + WhisperLanguage.allLanguages
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 8) {
+                Image(systemName: "magnifyingglass")
+                    .foregroundColor(.secondary)
+                TextField("Search language...", text: self.$searchText)
+                    .textFieldStyle(.plain)
+                    .focused(self.$isSearchFocused)
+                    .onSubmit {
+                        self.selectHighlightedLanguage()
+                    }
+                if !self.searchText.isEmpty {
+                    Button(action: {
+                        self.searchText = ""
+                    }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundColor(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(8)
+
+            Divider()
+
+            ScrollViewReader { proxy in
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 0) {
+                        ForEach(Array(self.displayedLanguages.enumerated()), id: \.element.id) { index, language in
+                            Button(action: {
+                                self.selectLanguage(language)
+                            }) {
+                                HStack(spacing: 8) {
+                                    Text(language.flag)
+                                    Text(language.name)
+                                        .lineLimit(1)
+                                    Spacer()
+                                    if language.id == self.selectedLanguage.id {
+                                        Image(systemName: "checkmark")
+                                            .foregroundColor(.accentColor)
+                                            .font(.caption)
+                                    }
+                                }
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 6)
+                                .background(index == self.highlightedIndex ? Color.accentColor.opacity(0.2) : Color
+                                    .clear)
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            .id(index)
+                        }
+                    }
+                }
+                .onChange(of: self.highlightedIndex) {
+                    withAnimation {
+                        proxy.scrollTo(self.highlightedIndex, anchor: .center)
+                    }
+                }
+            }
+        }
+        .frame(width: 240, height: 280)
+        .onAppear {
+            self.displayedLanguages = Self.allOptions
+            self.isSearchFocused = true
+        }
+        .onChange(of: self.searchText) { _, newValue in
+            self.filterLanguages(query: newValue)
+        }
+        .onKeyPress(.downArrow) {
+            self.moveHighlight(by: 1)
+            return .handled
+        }
+        .onKeyPress(.upArrow) {
+            self.moveHighlight(by: -1)
+            return .handled
+        }
+        .onKeyPress(.escape) {
+            self.isPresented = false
+            return .handled
+        }
+    }
+
+    private func filterLanguages(query: String) {
+        self.highlightedIndex = 0
+        if query.isEmpty {
+            self.displayedLanguages = Self.allOptions
+        } else {
+            let lowercased = query.lowercased()
+            self.displayedLanguages = Self.allOptions.filter { lang in
+                lang.name.lowercased().contains(lowercased) || lang.id.lowercased().contains(lowercased)
+            }
+        }
+    }
+
+    private func moveHighlight(by offset: Int) {
+        let newIndex = self.highlightedIndex + offset
+        if newIndex >= 0, newIndex < self.displayedLanguages.count {
+            self.highlightedIndex = newIndex
+        }
+    }
+
+    private func selectHighlightedLanguage() {
+        guard self.highlightedIndex < self.displayedLanguages.count else { return }
+        self.selectLanguage(self.displayedLanguages[self.highlightedIndex])
+    }
+
+    private func selectLanguage(_ language: WhisperLanguage) {
+        self.selectedLanguage = language
+        self.isPresented = false
+    }
+}
+
 struct SettingsView: View {
     @Environment(\.dismiss) var dismiss
     @ObservedObject private var settings = SettingsManager.shared
@@ -22,7 +305,7 @@ struct SettingsView: View {
 
     @State private var selectedTab: SettingsTab = .general
     @State private var apiKey: String = ""
-    @State private var language: String = ""
+    @State private var selectedLanguage: WhisperLanguage = .autoDetect
     @State private var shortcutKeyCode: Int = 49
     @State private var shortcutModifierFlags: Int = 2048
     @State private var selectedProvider: TranscriptionProvider = .openAI
@@ -163,11 +446,9 @@ struct SettingsView: View {
             self.settingsCard("Transcription") {
                 self.settingsRow(
                     title: "Language",
-                    description: "Optional language code (e.g. 'en', 'pt', 'es')")
+                    description: "Type to search or select from the list")
                 {
-                    TextField("Auto-detect", text: self.$language)
-                        .textFieldStyle(.roundedBorder)
-                        .frame(width: 220)
+                    LanguageSearchField(selectedLanguage: self.$selectedLanguage)
                 }
             }
 
@@ -696,7 +977,15 @@ struct SettingsView: View {
 
     private func loadSettings() {
         self.apiKey = self.settings.apiKey
-        self.language = self.settings.language ?? ""
+
+        // Load language from settings
+        if let languageCode = self.settings.language {
+            self.selectedLanguage = WhisperLanguage.allLanguages.first(where: { $0.id == languageCode })
+                ?? WhisperLanguage.autoDetect
+        } else {
+            self.selectedLanguage = WhisperLanguage.autoDetect
+        }
+
         self.shortcutKeyCode = self.settings.shortcutKeyCode
         self.shortcutModifierFlags = self.settings.shortcutModifierFlags
         self.selectedProvider = self.settings.transcriptionProvider
@@ -706,7 +995,10 @@ struct SettingsView: View {
 
     private func saveSettings() {
         self.settings.apiKey = self.apiKey
-        self.settings.language = self.language.isEmpty ? nil : self.language
+
+        // Save language to settings (nil if auto-detect)
+        self.settings.language = self.selectedLanguage.id.isEmpty ? nil : self.selectedLanguage.id
+
         self.settings.transcriptionProvider = self.selectedProvider
         self.settings.selectedWhisperModel = self.selectedModel
         self.settings.selectedModelId = self.selectedModelId
