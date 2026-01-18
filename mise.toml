@@ -18,5 +18,15 @@ description = "Open the built OpenVoicy application"
 run = "open /Users/arado/Library/Developer/Xcode/DerivedData/OpenVoicy-ckkkjzkfjvlqatfgihmivypagacj/Build/Products/Debug/OpenVoicy.app"
 alias = "o"
 
+[tasks.format]
+description = "Format the code using swiftformat"
+run = "swiftformat ."
+alias = "fmt"
+
+[tasks.lint]
+description = "Lint the code using swiftlint"
+run = "swiftlint"
+alias = "lint"
+
 [shell_alias]
 dev = "./scripts/compile_and_run.sh"
