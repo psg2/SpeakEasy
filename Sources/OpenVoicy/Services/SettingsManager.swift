@@ -57,6 +57,13 @@ class SettingsManager: ObservableObject {
         }
     }
 
+    /// Text snippets for replacement (key: snippet name, value: replacement text)
+    @Published var snippets: [String: String] {
+        didSet {
+            self.defaults.set(try? JSONEncoder().encode(self.snippets), forKey: "text_snippets")
+        }
+    }
+
     init() {
         self.apiKey = self.defaults.string(forKey: "openai_api_key") ?? ""
         // Default to Option (2048/0x800) + Space (49/0x31)
@@ -88,6 +95,15 @@ class SettingsManager: ObservableObject {
             self.selectedModelId = modelId
         } else {
             self.selectedModelId = whisperModel.whisperKitName
+        }
+
+        // Load text snippets
+        if let snippetsData = self.defaults.data(forKey: "text_snippets"),
+           let snippets = try? JSONDecoder().decode([String: String].self, from: snippetsData)
+        {
+            self.snippets = snippets
+        } else {
+            self.snippets = [:]
         }
     }
 

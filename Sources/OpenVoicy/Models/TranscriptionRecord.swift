@@ -13,6 +13,7 @@ public final class TranscriptionRecord {
     @Attribute(.unique) public var id: UUID
 
     public var text: String
+    public var rawText: String?
     public var createdAt: Date
     public var updatedAt: Date
     public var audioFileName: String?
@@ -32,6 +33,7 @@ public final class TranscriptionRecord {
     public init(
         id: UUID = UUID(),
         text: String,
+        rawText: String? = nil,
         createdAt: Date = Date(),
         audioFileName: String? = nil,
         durationSeconds: Double? = nil,
@@ -43,6 +45,7 @@ public final class TranscriptionRecord {
     {
         self.id = id
         self.text = text
+        self.rawText = rawText
         self.createdAt = createdAt
         self.updatedAt = createdAt
         self.audioFileName = audioFileName
@@ -61,6 +64,13 @@ public final class TranscriptionRecord {
 
     func updateText(_ newText: String) {
         self.text = newText
+        self.wordCount = Self.calculateWordCount(newText)
+        self.updatedAt = Date()
+    }
+
+    func updateText(_ newText: String, rawText: String?) {
+        self.text = newText
+        self.rawText = rawText
         self.wordCount = Self.calculateWordCount(newText)
         self.updatedAt = Date()
     }

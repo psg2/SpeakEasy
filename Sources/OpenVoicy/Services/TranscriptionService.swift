@@ -61,12 +61,42 @@ class TranscriptionService {
     private let openAIClient = OpenAIClient.shared
 
     func transcribe(audioFileURL: URL, language: String? = nil) async throws -> String {
+        let result = try await self.transcribeWithSnippets(audioFileURL: audioFileURL, language: language)
+        return result.processedText
+    }
+
+    func transcribeWithSnippets(audioFileURL: URL, language: String? = nil) async throws -> (rawText: String, processedText: String) {
+        let rawText: String
         switch self.settings.transcriptionProvider {
         case .openAI:
-            try await self.transcribeWithOpenAI(audioFileURL: audioFileURL, language: language)
+            rawText = try await self.transcribeWithOpenAI(audioFileURL: audioFileURL, language: language)
         case .localWhisper:
-            try await self.transcribeWithLocalWhisper(audioFileURL: audioFileURL, language: language)
+            rawText = try await self.transcribeWithLocalWhisper(audioFileURL: audioFileURL, language: language)
         }
+
+        let processedText = self.applySnippetReplacements(rawText)
+        return (rawText, processedText)
+    }
+
+    func applySnippetReplacements(_ text: String) -> String {
+        guard !self.settings.snippets.isEmpty else {
+            return text
+        }
+
+        var processedText = text
+
+        for (snippetKey, snippetValue) in self.settings.snippets {
+            let pattern = NSRegularExpression.escapedPattern(for: snippetKey)
+            if let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive) {
+                let range = NSRange(processedText.startIndex..., in: processedText)
+                processedText = regex.stringByReplacingMatches(
+                    in: processedText,
+                    range: range,
+                    withTemplate: snippetValue)
+            }
+        }
+
+        return processedText
     }
 
     // MARK: - Local Whisper Transcription
