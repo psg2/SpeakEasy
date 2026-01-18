@@ -12,3 +12,9 @@
 ## Developing
 
 - Run `mise run dev` to kill the running application, build the application, and open the application
+
+## Testing
+
+- Run all tests: `mise run test` or `swift test`
+- Run specific test file: `swift test --filter ShortcutValidatorTests`
+- Run specific test: `swift test --filter "Valid shortcut with single modifier"`

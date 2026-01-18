@@ -35,6 +35,34 @@ A macOS native speech-to-text app with global hotkey support, offering both clou
 
 Press `Esc` to cancel recording.
 
+## Testing
+
+Run tests using:
+
+```bash
+mise run test
+# or
+swift test
+```
+
+### Adding Tests
+
+Tests live in `Tests/OpenVoicyTests/` and use Swift Testing:
+
+```swift
+import Testing
+@testable import OpenVoicyLib
+
+@Suite("My Feature Tests")
+struct MyFeatureTests {
+    @Test("Description of what this tests")
+    func testSomething() {
+        let result = myFunction()
+        #expect(result == expectedValue)
+    }
+}
+```
+
 ## Tech Stack
 
 - Swift 6 / SwiftUI

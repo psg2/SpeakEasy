@@ -28,6 +28,11 @@ description = "Lint the code using swiftlint"
 run = "swiftlint"
 alias = "lint"
 
+[tasks.test]
+description = "Run Swift tests"
+run = "swift test"
+alias = "t"
+
 [tasks.dev]
 description = "Compile and run the application"
 run = "./scripts/compile_and_run.sh"

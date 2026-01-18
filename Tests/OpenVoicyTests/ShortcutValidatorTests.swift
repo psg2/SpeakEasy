@@ -33,17 +33,18 @@ struct ShortcutValidatorTests {
         }
     }
 
-    @Test("Valid shortcut with three modifiers")
-    func testValidShortcutWithThreeModifiers() {
+    @Test("Invalid shortcut with three modifiers (exceeds 3-key limit)")
+    func testInvalidShortcutWithThreeModifiers() {
+        // 3 modifiers + 1 key = 4 keys total, exceeds 3-key limit
         let result = ShortcutValidator.validate(
             keyCode: kVK_ANSI_K,
             modifiers: cmdKey | shiftKey | optionKey
         )
 
-        if case .valid = result {
-            // Success
+        if case .invalid(let reason) = result {
+            #expect(reason.contains("3 keys or fewer"))
         } else {
-            Issue.record("Expected valid result, got \(result)")
+            Issue.record("Expected invalid result for 3 modifiers + key, got \(result)")
         }
     }
 
