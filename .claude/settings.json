@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mise run lint:*)",
+      "Bash(mise run format:*)",
+      "Bash(mise run build:*)",
+      "Bash(mise run dev:*)"
+    ]
+  }
+}

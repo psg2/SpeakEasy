@@ -8,3 +8,7 @@
 ## Build
 
 - mise run build
+
+## Developing
+
+- Run `mise run dev` to kill the running application, build the application, and open the application
