@@ -38,6 +38,9 @@ struct SettingsView: View {
     @State private var newSnippetKey: String = ""
     @State private var newSnippetValue: String = ""
     @State private var editingSnippetKey: String?
+    @State private var showOverwriteConfirmation: Bool = false
+    @State private var pendingSnippetKey: String = ""
+    @State private var pendingSnippetValue: String = ""
 
     enum ApiKeyValidationResult {
         case success
@@ -202,33 +205,6 @@ struct SettingsView: View {
 
                     Divider()
 
-                    if self.snippets.isEmpty {
-                        HStack {
-                            Spacer()
-                            VStack(spacing: 8) {
-                                Image(systemName: "text.badge.plus")
-                                    .font(.system(size: 32))
-                                    .foregroundColor(.secondary)
-                                Text("No snippets yet")
-                                    .font(.body)
-                                    .foregroundColor(.secondary)
-                                Text("Add your first snippet below")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                            .padding(.vertical, 20)
-                            Spacer()
-                        }
-                    } else {
-                        VStack(spacing: 8) {
-                            ForEach(Array(self.snippets.keys.sorted()), id: \.self) { key in
-                                self.snippetRow(key: key, value: self.snippets[key] ?? "")
-                            }
-                        }
-                    }
-
-                    Divider()
-
                     VStack(spacing: 8) {
                         HStack {
                             Text("Add Snippet")
@@ -266,8 +242,26 @@ struct SettingsView: View {
                             .padding(.top, 18)
                         }
                     }
+
+                    if !self.snippets.isEmpty {
+                        Divider()
+
+                        VStack(spacing: 8) {
+                            ForEach(Array(self.snippets.keys.sorted()), id: \.self) { key in
+                                self.snippetRow(key: key, value: self.snippets[key] ?? "")
+                            }
+                        }
+                    }
                 }
             }
+        }
+        .alert("Overwrite Snippet?", isPresented: self.$showOverwriteConfirmation) {
+            Button("Cancel", role: .cancel) {}
+            Button("Overwrite", role: .destructive) {
+                self.confirmOverwrite()
+            }
+        } message: {
+            Text("A snippet with key \"\(self.pendingSnippetKey)\" already exists. Do you want to overwrite it?")
         }
     }
 
@@ -300,9 +294,23 @@ struct SettingsView: View {
     private func addSnippet() {
         guard !self.newSnippetKey.isEmpty, !self.newSnippetValue.isEmpty else { return }
 
-        self.snippets[self.newSnippetKey] = self.newSnippetValue
+        if self.snippets[self.newSnippetKey] != nil {
+            self.pendingSnippetKey = self.newSnippetKey
+            self.pendingSnippetValue = self.newSnippetValue
+            self.showOverwriteConfirmation = true
+        } else {
+            self.snippets[self.newSnippetKey] = self.newSnippetValue
+            self.newSnippetKey = ""
+            self.newSnippetValue = ""
+        }
+    }
+
+    private func confirmOverwrite() {
+        self.snippets[self.pendingSnippetKey] = self.pendingSnippetValue
         self.newSnippetKey = ""
         self.newSnippetValue = ""
+        self.pendingSnippetKey = ""
+        self.pendingSnippetValue = ""
     }
 
     private func deleteSnippet(key: String) {
