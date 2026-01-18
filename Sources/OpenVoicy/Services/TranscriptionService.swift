@@ -1,6 +1,6 @@
 import Foundation
 
-enum TranscriptionError: Error {
+enum TranscriptionError: LocalizedError {
     case invalidApiKey
     case fileTooLarge
     case fileTooShort
@@ -8,6 +8,31 @@ enum TranscriptionError: Error {
     case apiError(String)
     case invalidResponse
     case encodingError
+    case modelNotReady
+    case localWhisperError(String)
+
+    var errorDescription: String? {
+        switch self {
+        case .invalidApiKey:
+            return "Invalid or missing API key"
+        case .fileTooLarge:
+            return "Audio file too large (max 25MB for OpenAI)"
+        case .fileTooShort:
+            return "Audio recording too short"
+        case .networkError(let msg):
+            return "Network error: \(msg)"
+        case .apiError(let msg):
+            return "API error: \(msg)"
+        case .invalidResponse:
+            return "Invalid response from server"
+        case .encodingError:
+            return "Failed to encode audio"
+        case .modelNotReady:
+            return "Whisper model not downloaded"
+        case .localWhisperError(let msg):
+            return "Local Whisper error: \(msg)"
+        }
+    }
 }
 
 struct TranscriptionResponse: Decodable {
@@ -18,9 +43,40 @@ class TranscriptionService {
     static let shared = TranscriptionService()
 
     private let apiUrl = URL(string: "https://api.openai.com/v1/audio/transcriptions")!
+    private let settings = SettingsManager.shared
 
     func transcribe(audioFileURL: URL, language: String? = nil) async throws -> String {
-        guard let apiKey = SettingsManager.shared.apiKey as String?, !apiKey.isEmpty else {
+        switch settings.transcriptionProvider {
+        case .openAI:
+            return try await transcribeWithOpenAI(audioFileURL: audioFileURL, language: language)
+        case .localWhisper:
+            return try await transcribeWithLocalWhisper(audioFileURL: audioFileURL, language: language)
+        }
+    }
+
+    // MARK: - Local Whisper Transcription
+
+    private func transcribeWithLocalWhisper(audioFileURL: URL, language: String?) async throws -> String {
+        guard settings.isLocalWhisperReady else {
+            throw TranscriptionError.modelNotReady
+        }
+
+        do {
+            return try await LocalWhisperService.shared.transcribe(
+                audioFileURL: audioFileURL,
+                language: language
+            )
+        } catch let error as LocalWhisperError {
+            throw TranscriptionError.localWhisperError(error.localizedDescription)
+        } catch {
+            throw TranscriptionError.localWhisperError(error.localizedDescription)
+        }
+    }
+
+    // MARK: - OpenAI API Transcription
+
+    private func transcribeWithOpenAI(audioFileURL: URL, language: String?) async throws -> String {
+        guard let apiKey = settings.apiKey as String?, !apiKey.isEmpty else {
             throw TranscriptionError.invalidApiKey
         }
 
@@ -28,7 +84,6 @@ class TranscriptionService {
             throw TranscriptionError.encodingError
         }
 
-        // 25MB limit
         if audioData.count > 25 * 1024 * 1024 {
             throw TranscriptionError.fileTooLarge
         }
@@ -46,19 +101,16 @@ class TranscriptionService {
 
         var body = Data()
 
-        // Model
         body.append(Data("--\(boundary)\r\n".utf8))
         body.append(Data("Content-Disposition: form-data; name=\"model\"\r\n\r\n".utf8))
         body.append(Data("whisper-1\r\n".utf8))
 
-        // Language
         if let language, !language.isEmpty {
             body.append(Data("--\(boundary)\r\n".utf8))
             body.append(Data("Content-Disposition: form-data; name=\"language\"\r\n\r\n".utf8))
             body.append(Data("\(language)\r\n".utf8))
         }
 
-        // File
         body.append(Data("--\(boundary)\r\n".utf8))
         body.append(Data("Content-Disposition: form-data; name=\"file\"; filename=\"audio.wav\"\r\n".utf8))
         body.append(Data("Content-Type: audio/wav\r\n\r\n".utf8))

@@ -1,3 +1,4 @@
+import OpenVoicyLib
 import SwiftData
 import SwiftUI
 
