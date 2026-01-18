@@ -90,10 +90,12 @@ public class StatusBarController: NSObject {
             window.isReleasedWhenClosed = false
             window.center()
             window.setFrameAutosaveName("HistoryWindow")
+            window.delegate = self
 
             self.historyWindow = window
         }
 
+        NSApp.setActivationPolicy(.regular)
         self.historyWindow?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
     }
@@ -116,15 +118,39 @@ public class StatusBarController: NSObject {
             window.isReleasedWhenClosed = false
             window.center()
             window.setFrameAutosaveName("SettingsWindow")
+            window.delegate = self
 
             self.settingsWindow = window
         }
 
+        NSApp.setActivationPolicy(.regular)
         self.settingsWindow?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
     }
 
     @objc private func quitApp() {
         NSApp.terminate(nil)
+    }
+
+    private func updateActivationPolicy() {
+        let hasVisibleWindow = (self.historyWindow?.isVisible == true) ||
+            (self.settingsWindow?.isVisible == true)
+
+        if hasVisibleWindow {
+            NSApp.setActivationPolicy(.regular)
+        } else {
+            NSApp.setActivationPolicy(.accessory)
+        }
+    }
+}
+
+// MARK: - NSWindowDelegate
+
+extension StatusBarController: NSWindowDelegate {
+    public func windowWillClose(_: Notification) {
+        // Delay the check slightly to allow window state to update
+        DispatchQueue.main.async {
+            self.updateActivationPolicy()
+        }
     }
 }

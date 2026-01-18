@@ -29,6 +29,25 @@ struct SettingsView: View {
     @State private var selectedModel: WhisperModel = .base
     @State private var selectedModelId: String = "openai_whisper-base"
     @State private var showAllModels: Bool = false
+    @State private var showApiKey: Bool = false
+    @State private var isValidatingApiKey: Bool = false
+    @State private var apiKeyValidationResult: ApiKeyValidationResult?
+
+    enum ApiKeyValidationResult {
+        case success
+        case failure(String)
+    }
+
+    private var canSave: Bool {
+        // If OpenAI is selected and there's an API key, it must be validated successfully
+        if self.selectedProvider == .openAI, !self.apiKey.isEmpty {
+            if case .success = self.apiKeyValidationResult {
+                return true
+            }
+            return false
+        }
+        return true
+    }
 
     var body: some View {
         HStack(spacing: 0) {
@@ -131,6 +150,7 @@ struct SettingsView: View {
                 }
                 .keyboardShortcut(.defaultAction)
                 .buttonStyle(.borderedProminent)
+                .disabled(!self.canSave)
             }
             .padding(16)
         }
@@ -231,19 +251,92 @@ struct SettingsView: View {
                 title: "API Key",
                 description: "Your OpenAI API key for Whisper transcription")
             {
-                SecureField("sk-...", text: self.$apiKey)
+                HStack(spacing: 8) {
+                    Group {
+                        if self.showApiKey {
+                            TextField("sk-...", text: self.$apiKey)
+                        } else {
+                            SecureField("sk-...", text: self.$apiKey)
+                        }
+                    }
                     .textFieldStyle(.roundedBorder)
-                    .frame(width: 220)
+                    .frame(width: 180)
+                    .onChange(of: self.apiKey) {
+                        self.apiKeyValidationResult = nil
+                    }
+
+                    Button(action: { self.showApiKey.toggle() }) {
+                        Image(systemName: self.showApiKey ? "eye.slash" : "eye")
+                            .foregroundColor(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .help(self.showApiKey ? "Hide API key" : "Show API key")
+                }
             }
 
             if !self.apiKey.isEmpty {
                 HStack {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundColor(.green)
-                    Text("API key configured")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                    if let result = self.apiKeyValidationResult {
+                        switch result {
+                        case .success:
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundColor(.green)
+                            Text("Connection successful")
+                                .font(.caption)
+                                .foregroundColor(.green)
+                        case let .failure(message):
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundColor(.red)
+                            Text(message)
+                                .font(.caption)
+                                .foregroundColor(.red)
+                        }
+                    } else {
+                        Image(systemName: "exclamationmark.circle.fill")
+                            .foregroundColor(.orange)
+                        Text("API key not validated")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+
                     Spacer()
+
+                    if self.isValidatingApiKey {
+                        ProgressView()
+                            .scaleEffect(0.7)
+                        Text("Validating...")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    } else {
+                        Button(action: self.validateApiKey) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "checkmark.shield")
+                                Text("Validate")
+                            }
+                            .font(.caption)
+                        }
+                        .buttonStyle(.bordered)
+                    }
+                }
+            }
+        }
+    }
+
+    private func validateApiKey() {
+        self.isValidatingApiKey = true
+        self.apiKeyValidationResult = nil
+
+        Task {
+            do {
+                try await OpenAIClient.shared.validateApiKey(self.apiKey)
+                await MainActor.run {
+                    self.isValidatingApiKey = false
+                    self.apiKeyValidationResult = .success
+                }
+            } catch {
+                await MainActor.run {
+                    self.isValidatingApiKey = false
+                    self.apiKeyValidationResult = .failure(error.localizedDescription)
                 }
             }
         }

@@ -3,7 +3,7 @@
 ## Formatting
 
 - Specify files to format: `swiftformat <file1> <file2> ...`
-- Project formatting: `swiftformat .`
+- Project formatting: `mise run format`
 
 ## Build
 
