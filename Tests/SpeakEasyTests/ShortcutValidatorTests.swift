@@ -1,7 +1,7 @@
 import Carbon
 import Foundation
 import Testing
-@testable import OpenVoicyLib
+@testable import SpeakEasyLib
 
 @Suite("ShortcutValidator Tests")
 struct ShortcutValidatorTests {
