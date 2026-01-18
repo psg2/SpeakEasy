@@ -101,7 +101,9 @@ public class StatusBarController: NSObject {
     }
 
     @objc private func showSettings() {
-        if self.settingsWindow == nil {
+        let isNewWindow = self.settingsWindow == nil
+
+        if isNewWindow {
             let settingsView = SettingsView()
 
             let hostingController = NSHostingController(rootView: settingsView)
@@ -125,7 +127,15 @@ public class StatusBarController: NSObject {
 
         NSApp.setActivationPolicy(.regular)
         self.settingsWindow?.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
+
+        if isNewWindow {
+            // Delay activation slightly for new windows to ensure they're fully ready
+            DispatchQueue.main.async {
+                NSApp.activate(ignoringOtherApps: true)
+            }
+        } else {
+            NSApp.activate(ignoringOtherApps: true)
+        }
     }
 
     @objc private func quitApp() {
