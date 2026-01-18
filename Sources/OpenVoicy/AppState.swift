@@ -161,7 +161,7 @@ public class AppState: ObservableObject {
             try? await Task.sleep(nanoseconds: 100 * 1_000_000)
 
             if self.accessibility.checkPermissions() {
-                self.accessibility.typeText(text)
+                self.accessibility.typeText(result.processedText)
             } else {
                 self.errorMessage = "Transcription copied to clipboard. Enable Accessibility to type directly."
             }
