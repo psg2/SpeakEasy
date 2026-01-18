@@ -108,10 +108,13 @@ class TranscriptionService {
             throw TranscriptionError.modelNotReady
         }
 
+        let prompt = self.settings.whisperPrompt.isEmpty ? nil : self.settings.whisperPrompt
+
         do {
             return try await LocalWhisperService.shared.transcribe(
                 audioFileURL: audioFileURL,
-                language: language)
+                language: language,
+                prompt: prompt)
         } catch {
             throw TranscriptionError.localWhisperError(error.localizedDescription)
         }
@@ -128,10 +131,13 @@ class TranscriptionService {
             throw TranscriptionError.encodingError
         }
 
+        let prompt = self.settings.whisperPrompt.isEmpty ? nil : self.settings.whisperPrompt
+
         do {
             return try await self.openAIClient.transcribe(
                 audioData: audioData,
                 language: language,
+                prompt: prompt,
                 apiKey: self.settings.apiKey)
         } catch let error as OpenAIError {
             throw TranscriptionError(from: error)

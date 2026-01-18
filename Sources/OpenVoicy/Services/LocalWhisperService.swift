@@ -59,7 +59,7 @@ class LocalWhisperService {
         }
     }
 
-    func transcribe(audioFileURL: URL, language: String? = nil) async throws -> String {
+    func transcribe(audioFileURL: URL, language: String? = nil, prompt: String? = nil) async throws -> String {
         let totalStart = CFAbsoluteTimeGetCurrent()
 
         log.whisper("══════════════════════════════════════════")
@@ -91,7 +91,8 @@ class LocalWhisperService {
         let results = try await whisperKit.transcribe(
             audioPath: audioFileURL.path,
             decodeOptions: DecodingOptions(
-                language: language))
+                language: language,
+                prompt: prompt))
         let transcribeTime = CFAbsoluteTimeGetCurrent() - transcribeStart
 
         let transcription = results.map(\.text).joined(separator: " ")
