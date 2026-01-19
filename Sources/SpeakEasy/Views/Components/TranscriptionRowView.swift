@@ -108,5 +108,4 @@ struct TranscriptionRowView: View {
             .foregroundColor(.secondary.opacity(0.7))
         }
     }
-
 }
