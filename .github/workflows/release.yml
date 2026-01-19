@@ -104,10 +104,14 @@ jobs:
           echo "" >> release_notes.md
           echo "1. Download \`SpeakEasy-${VERSION}-macOS.zip\`" >> release_notes.md
           echo "2. Extract the archive" >> release_notes.md
-          echo "3. Move \`SpeakEasy.app\` to your Applications folder" >> release_notes.md
-          echo "4. Open the app (you may need to right-click and select \"Open\" the first time)" >> release_notes.md
+          echo "3. Remove the quarantine attribute (required for unsigned apps):" >> release_notes.md
+          echo "   \`\`\`bash" >> release_notes.md
+          echo "   xattr -cr ~/Downloads/SpeakEasy.app" >> release_notes.md
+          echo "   \`\`\`" >> release_notes.md
+          echo "4. Move \`SpeakEasy.app\` to your Applications folder" >> release_notes.md
+          echo "5. Open the app (you may need to right-click and select \"Open\" the first time)" >> release_notes.md
           echo "" >> release_notes.md
-          echo "**Note:** This is an unsigned build. On first launch, macOS will ask you to confirm you want to open an app from an unidentified developer." >> release_notes.md
+          echo "**Note:** This is an unsigned build. The quarantine removal step is required because macOS marks downloaded unsigned apps as damaged." >> release_notes.md
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
