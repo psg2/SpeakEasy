@@ -18,6 +18,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Setup mise
+        uses: jdx/mise-action@v2
+
       - name: Select Xcode
         run: |
           # Try Xcode 16.x first, fallback to latest available
@@ -35,14 +38,10 @@ jobs:
         run: xcodebuild -resolvePackageDependencies -project SpeakEasy.xcodeproj -scheme SpeakEasy
 
       - name: Lint (SwiftFormat)
-        run: |
-          brew install swiftformat
-          swiftformat Sources Tests SpeakEasy --lint
+        run: swiftformat Sources Tests SpeakEasy --lint
 
       - name: Lint (SwiftLint)
-        run: |
-          brew install swiftlint
-          swiftlint lint --strict
+        run: swiftlint lint --strict
 
       - name: Build
         run: |
