@@ -32,12 +32,12 @@ jobs:
           swift --version
 
       - name: Resolve Dependencies
-        run: xcodebuild -resolvePackageDependencies -project OpenVoicy.xcodeproj -scheme OpenVoicy
+        run: xcodebuild -resolvePackageDependencies -project SpeakEasy.xcodeproj -scheme SpeakEasy
 
       - name: Lint (SwiftFormat)
         run: |
           brew install swiftformat
-          swiftformat Sources Tests OpenVoicy --lint
+          swiftformat Sources Tests SpeakEasy --lint
 
       - name: Lint (SwiftLint)
         run: |
@@ -47,8 +47,8 @@ jobs:
       - name: Build
         run: |
           xcodebuild build \
-            -project OpenVoicy.xcodeproj \
-            -scheme OpenVoicy \
+            -project SpeakEasy.xcodeproj \
+            -scheme SpeakEasy \
             -configuration Release \
             -destination "platform=macOS" \
             CODE_SIGN_IDENTITY="" \

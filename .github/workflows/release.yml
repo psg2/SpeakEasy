@@ -47,13 +47,13 @@ jobs:
           fi
 
       - name: Resolve Dependencies
-        run: xcodebuild -resolvePackageDependencies -project OpenVoicy.xcodeproj -scheme OpenVoicy
+        run: xcodebuild -resolvePackageDependencies -project SpeakEasy.xcodeproj -scheme SpeakEasy
 
       - name: Build Release
         run: |
           xcodebuild build \
-            -project OpenVoicy.xcodeproj \
-            -scheme OpenVoicy \
+            -project SpeakEasy.xcodeproj \
+            -scheme SpeakEasy \
             -configuration Release \
             -derivedDataPath build \
             -destination "platform=macOS" \
@@ -64,9 +64,9 @@ jobs:
       - name: Create Archive
         id: archive
         run: |
-          APP_PATH="build/Build/Products/Release/OpenVoicy.app"
+          APP_PATH="build/Build/Products/Release/SpeakEasy.app"
           VERSION="${{ steps.version.outputs.tag }}"
-          ARCHIVE_NAME="OpenVoicy-${VERSION}-macOS.zip"
+          ARCHIVE_NAME="SpeakEasy-${VERSION}-macOS.zip"
 
           # Create ZIP archive
           cd "$(dirname "$APP_PATH")"
@@ -94,7 +94,7 @@ jobs:
           else
             echo "## Initial Release" > release_notes.md
             echo "" >> release_notes.md
-            echo "First release of OpenVoicy!" >> release_notes.md
+            echo "First release of SpeakEasy!" >> release_notes.md
           fi
 
           echo "" >> release_notes.md
@@ -102,9 +102,9 @@ jobs:
           echo "" >> release_notes.md
           echo "### Installation" >> release_notes.md
           echo "" >> release_notes.md
-          echo "1. Download \`OpenVoicy-${VERSION}-macOS.zip\`" >> release_notes.md
+          echo "1. Download \`SpeakEasy-${VERSION}-macOS.zip\`" >> release_notes.md
           echo "2. Extract the archive" >> release_notes.md
-          echo "3. Move \`OpenVoicy.app\` to your Applications folder" >> release_notes.md
+          echo "3. Move \`SpeakEasy.app\` to your Applications folder" >> release_notes.md
           echo "4. Open the app (you may need to right-click and select \"Open\" the first time)" >> release_notes.md
           echo "" >> release_notes.md
           echo "**Note:** This is an unsigned build. On first launch, macOS will ask you to confirm you want to open an app from an unidentified developer." >> release_notes.md
@@ -113,7 +113,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.tag }}
-          name: OpenVoicy ${{ steps.version.outputs.tag }}
+          name: SpeakEasy ${{ steps.version.outputs.tag }}
           body_path: release_notes.md
           draft: false
           prerelease: ${{ contains(steps.version.outputs.tag, '-') }}
@@ -127,7 +127,7 @@ jobs:
         if: github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v6
         with:
-          name: OpenVoicy-${{ steps.version.outputs.tag }}
+          name: SpeakEasy-${{ steps.version.outputs.tag }}
           path: |
             ${{ steps.archive.outputs.archive_name }}
             ${{ steps.archive.outputs.checksum_name }}
