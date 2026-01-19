@@ -1,10 +1,10 @@
 import Foundation
 
-// LLM model variants for transcription enrichment
-public enum LLMModel: String, CaseIterable, Codable {
-    case qwen05B = "mlx-community/Qwen2.5-0.5B-Instruct-4bit"
-    case qwen15B = "mlx-community/Qwen2.5-1.5B-Instruct-4bit"
-    case qwen3B = "mlx-community/Qwen2.5-3B-Instruct-4bit"
+// LLM model variants for transcription enrichment (GGUF format for llama.cpp)
+public enum LLMModel: String, CaseIterable, Codable, Sendable, Hashable {
+    case qwen05B = "Qwen2.5-0.5B-Instruct-Q4_K_M"
+    case qwen15B = "Qwen2.5-1.5B-Instruct-Q4_K_M"
+    case qwen3B = "Qwen2.5-3B-Instruct-Q4_K_M"
 
     public var displayName: String {
         switch self {
@@ -14,22 +14,43 @@ public enum LLMModel: String, CaseIterable, Codable {
         }
     }
 
-    public var modelId: String {
-        self.rawValue
+    public var fileName: String {
+        "\(rawValue).gguf"
+    }
+
+    /// Direct download URL from HuggingFace
+    public var downloadURL: URL {
+        switch self {
+        case .qwen05B:
+            URL(
+                string:
+                    "https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_k_m.gguf"
+            )!
+        case .qwen15B:
+            URL(
+                string:
+                    "https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/main/qwen2.5-1.5b-instruct-q4_k_m.gguf"
+            )!
+        case .qwen3B:
+            URL(
+                string:
+                    "https://huggingface.co/Qwen/Qwen2.5-3B-Instruct-GGUF/resolve/main/qwen2.5-3b-instruct-q4_k_m.gguf"
+            )!
+        }
     }
 
     public var estimatedSizeBytes: Int64 {
         switch self {
-        case .qwen05B: 300_000_000 // ~300MB (4-bit quantized)
-        case .qwen15B: 900_000_000 // ~900MB (4-bit quantized)
-        case .qwen3B: 1_800_000_000 // ~1.8GB (4-bit quantized)
+        case .qwen05B: 400_000_000 // ~400MB (Q4_K_M)
+        case .qwen15B: 1_100_000_000 // ~1.1GB (Q4_K_M)
+        case .qwen3B: 2_000_000_000 // ~2GB (Q4_K_M)
         }
     }
 
     public var sizeDescription: String {
         let formatter = ByteCountFormatter()
         formatter.countStyle = .file
-        return formatter.string(fromByteCount: self.estimatedSizeBytes)
+        return formatter.string(fromByteCount: estimatedSizeBytes)
     }
 
     public var ramUsage: String {
@@ -54,37 +75,6 @@ public enum LLMModel: String, CaseIterable, Codable {
         case .qwen15B: "Fast"
         case .qwen3B: "Moderate"
         }
-    }
-}
-
-// Dynamic LLM model from HuggingFace
-struct MLXModel: Identifiable, Codable, Hashable {
-    let id: String // e.g., "mlx-community/Qwen2.5-0.5B-Instruct-4bit"
-
-    var displayName: String {
-        // Extract model name from HuggingFace path
-        let components = id.split(separator: "/")
-        guard components.count >= 2 else { return id }
-
-        var name = String(components[1])
-        // Clean up common patterns
-        name = name.replacingOccurrences(of: "-Instruct", with: "")
-        name = name.replacingOccurrences(of: "-4bit", with: " (4-bit)")
-        name = name.replacingOccurrences(of: "-8bit", with: " (8-bit)")
-        name = name.replacingOccurrences(of: "-", with: " ")
-
-        return name
-    }
-
-    var isQuantized: Bool {
-        id.contains("4bit") || id.contains("8bit") || id.contains("fp16")
-    }
-
-    var quantizationType: String? {
-        if id.contains("4bit") { return "4-bit" }
-        if id.contains("8bit") { return "8-bit" }
-        if id.contains("fp16") { return "FP16" }
-        return nil
     }
 }
 

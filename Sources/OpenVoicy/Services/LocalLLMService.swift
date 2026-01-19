@@ -1,25 +1,24 @@
 import Foundation
-import MLX
-import MLXLLM
-import MLXLMCommon
-import Hub
+import LLM
+
+private let log = FileLogger.shared
 
 enum LLMError: LocalizedError {
     case modelNotLoaded
+    case modelNotFound(String)
     case modelLoadFailed(String)
     case inferenceFailed(String)
-    case invalidConfiguration
 
     var errorDescription: String? {
         switch self {
         case .modelNotLoaded:
             "LLM model not loaded"
+        case let .modelNotFound(path):
+            "Model file not found: \(path)"
         case let .modelLoadFailed(modelId):
             "Failed to load model: \(modelId)"
         case let .inferenceFailed(message):
             "Inference failed: \(message)"
-        case .invalidConfiguration:
-            "Invalid model configuration"
         }
     }
 }
@@ -27,49 +26,49 @@ enum LLMError: LocalizedError {
 class LocalLLMService {
     static let shared = LocalLLMService()
 
-    private var modelContainer: ModelContainer?
-    private var currentModelId: String?
-    private let queue = DispatchQueue(label: "com.openvoicy.llm", qos: .userInitiated)
+    private var llm: LLM?
+    private var currentModelPath: String?
 
     private init() {}
 
-    /// Load LLM model from HuggingFace
-    func loadModel(_ modelId: String) async throws {
+    /// Load LLM model from local GGUF file
+    func loadModel(from url: URL) async throws {
         // Return early if model is already loaded
-        if currentModelId == modelId, modelContainer != nil {
-            log.info("LLM model already loaded: \(modelId)")
+        if currentModelPath == url.path, llm != nil {
+            log.info("LLM model already loaded: \(url.lastPathComponent)")
             return
         }
 
-        log.info("Loading LLM model: \(modelId)")
+        guard FileManager.default.fileExists(atPath: url.path) else {
+            throw LLMError.modelNotFound(url.path)
+        }
+
+        log.info("Loading LLM model: \(url.lastPathComponent)")
         let loadStart = CFAbsoluteTimeGetCurrent()
 
-        do {
-            // Create hub API client
-            let hub = HubApi()
+        // Unload existing model first
+        unloadModel()
 
-            // Get model configuration
-            let modelConfiguration = ModelConfiguration.defaultModel(id: modelId)
+        // System prompt for transcription enrichment
+        let systemPrompt = """
+        You are a transcription editor. Your task is to fix spelling errors, add proper \
+        punctuation and capitalization to transcriptions. Preserve the original words and \
+        meaning. Only correct obvious errors. Do not add or remove content. Output only \
+        the corrected text without explanations.
+        """
 
-            // Load model container (downloads if needed)
-            modelContainer = try await ModelContainer.from(
-                configuration: modelConfiguration,
-                hub: hub
-            )
+        // Initialize LLM with ChatML template
+        llm = LLM(from: url, template: .chatML(systemPrompt))
 
-            currentModelId = modelId
+        currentModelPath = url.path
 
-            let loadTime = CFAbsoluteTimeGetCurrent() - loadStart
-            log.info("LLM model loaded successfully in \(String(format: "%.2f", loadTime))s: \(modelId)")
-        } catch {
-            log.error("Failed to load LLM model \(modelId): \(error.localizedDescription)")
-            throw LLMError.modelLoadFailed(modelId)
-        }
+        let loadTime = CFAbsoluteTimeGetCurrent() - loadStart
+        log.info("LLM model loaded in \(String(format: "%.2f", loadTime))s")
     }
 
     /// Enrich transcription with punctuation, capitalization, and error correction
-    func enrichTranscription(_ text: String, temperature: Float = 0.3) async throws -> String {
-        guard let modelContainer else {
+    func enrichTranscription(_ text: String) async throws -> String {
+        guard let llm else {
             throw LLMError.modelNotLoaded
         }
 
@@ -77,61 +76,36 @@ class LocalLLMService {
         let enrichStart = CFAbsoluteTimeGetCurrent()
 
         // Create prompt for transcription enrichment
-        let prompt = """
-        Fix spelling errors, add proper punctuation and capitalization to the following transcription. \
-        Preserve the original words and meaning. Only correct obvious errors. \
-        Do not add or remove content.
-
-        Transcription: \(text)
-
-        Corrected:
-        """
+        let prompt = "Correct this transcription: \(text)"
 
         do {
-            // Configure generation parameters
-            let parameters = GenerateParameters(
-                temperature: temperature,
-                topP: 0.9,
-                maxTokens: 500
-            )
-
-            // Generate enriched text
-            let result = try await modelContainer.perform { model, tokenizer in
-                LLMEvaluator.generate(
-                    prompt: .init(prompt),
-                    model: model,
-                    tokenizer: tokenizer,
-                    parameters: parameters
-                )
-            }
+            // Get completion from LLM
+            let result = await llm.getCompletion(from: prompt)
 
             let enrichTime = CFAbsoluteTimeGetCurrent() - enrichStart
-            let enrichedText = result.output.trimmingCharacters(in: .whitespacesAndNewlines)
+            let enrichedText = result.trimmingCharacters(in: .whitespacesAndNewlines)
 
             log.info("LLM enrichment completed in \(String(format: "%.2f", enrichTime))s")
-            log.info("Generated \(result.output.count) characters")
+            log.info("Generated \(enrichedText.count) characters")
 
             return enrichedText
-        } catch {
-            log.error("LLM inference failed: \(error.localizedDescription)")
-            throw LLMError.inferenceFailed(error.localizedDescription)
         }
     }
 
     /// Unload the current model to free memory
     func unloadModel() {
-        modelContainer = nil
-        currentModelId = nil
+        llm = nil
+        currentModelPath = nil
         log.info("LLM model unloaded")
     }
 
     /// Check if a model is currently loaded
     var isModelLoaded: Bool {
-        modelContainer != nil
+        llm != nil
     }
 
-    /// Get the currently loaded model ID
-    var loadedModelId: String? {
-        currentModelId
+    /// Get the currently loaded model path
+    var loadedModelPath: String? {
+        currentModelPath
     }
 }

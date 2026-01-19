@@ -1,146 +1,158 @@
 import AppKit
 import Combine
 import Foundation
-import Hub
 
 private let log = FileLogger.shared
 
-/// Manages MLX LLM model downloads and status
+/// Manages LLM model downloads and status (GGUF format)
 @MainActor
 class LLMModelManager: ObservableObject {
     static let shared = LLMModelManager()
 
     private let fileManager = FileManager.default
 
-    // Download status for each model (by model ID)
-    @Published var downloadStatus: [String: LLMStatus] = [:]
+    // Download status for each model
+    @Published var downloadStatus: [LLMModel: LLMStatus] = [:]
     @Published private(set) var isDownloading = false
-    @Published private(set) var currentlyDownloadingModelId: String?
+    @Published private(set) var currentlyDownloadingModel: LLMModel?
     @Published var downloadProgress: Double = 0.0
 
-    private var downloadTask: Task<Void, Never>?
+    private var downloadTask: URLSessionDownloadTask?
+    private var observation: NSKeyValueObservation?
 
-    // Default model directory (similar to HuggingFace cache)
-    private var modelsDirectory: URL {
-        fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("huggingface/hub/models--mlx-community")
+    // Models directory
+    var modelsDirectory: URL {
+        let appSupport = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        return appSupport.appendingPathComponent("SpeakEasy/LLMModels", isDirectory: true)
     }
 
     private init() {
+        // Ensure models directory exists
+        try? fileManager.createDirectory(at: modelsDirectory, withIntermediateDirectories: true)
         refreshAllDownloadStatus()
+    }
+
+    // MARK: - Model Paths
+
+    /// Get the local file path for a model
+    func modelPath(for model: LLMModel) -> URL {
+        modelsDirectory.appendingPathComponent(model.fileName)
     }
 
     // MARK: - Model Status
 
     /// Get the download status for a model
     func getStatus(for model: LLMModel) -> LLMStatus {
-        getStatus(for: model.modelId)
-    }
-
-    /// Get the download status for a model ID
-    func getStatus(for modelId: String) -> LLMStatus {
-        downloadStatus[modelId] ?? .notDownloaded
+        downloadStatus[model] ?? .notDownloaded
     }
 
     /// Check if a model is downloaded
     func isModelDownloaded(_ model: LLMModel) -> Bool {
-        isModelDownloaded(model.modelId)
-    }
-
-    /// Check if a model ID is downloaded
-    func isModelDownloaded(_ modelId: String) -> Bool {
-        guard case .downloaded = getStatus(for: modelId) else {
-            return false
-        }
-        return true
+        fileManager.fileExists(atPath: modelPath(for: model).path)
     }
 
     /// Synchronous check for model download status (for use in computed properties)
-    nonisolated static func isModelDownloadedSync(_ modelId: String) -> Bool {
+    nonisolated static func isModelDownloadedSync(_ model: LLMModel) -> Bool {
         let fileManager = FileManager.default
-        let modelsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("huggingface/hub/models--mlx-community")
-        let modelPath = modelsDirectory.appendingPathComponent(modelId.replacingOccurrences(of: "/", with: "--"))
+        let appSupport = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        let modelsDirectory = appSupport.appendingPathComponent("SpeakEasy/LLMModels", isDirectory: true)
+        let modelPath = modelsDirectory.appendingPathComponent(model.fileName)
         return fileManager.fileExists(atPath: modelPath.path)
     }
 
-    /// Refresh download status for all recommended models
+    /// Refresh download status for all models
     func refreshAllDownloadStatus() {
         for model in LLMModel.allCases {
-            let isDownloaded = checkModelExists(model.modelId)
-            downloadStatus[model.modelId] = isDownloaded ? .downloaded : .notDownloaded
+            downloadStatus[model] = isModelDownloaded(model) ? .downloaded : .notDownloaded
         }
-    }
-
-    /// Check if model files exist locally
-    private func checkModelExists(_ modelId: String) -> Bool {
-        // Check if the model directory exists in the HuggingFace cache
-        let modelPath = modelsDirectory.appendingPathComponent(modelId.replacingOccurrences(of: "/", with: "--"))
-        return fileManager.fileExists(atPath: modelPath.path)
     }
 
     // MARK: - Model Download
 
-    /// Download a model using HuggingFace Hub API
+    /// Download a model from HuggingFace
     func downloadModel(_ model: LLMModel) {
-        downloadModel(model.modelId)
-    }
-
-    /// Download a model by ID
-    func downloadModel(_ modelId: String) {
         // Cancel any existing download
         cancelDownload()
 
         isDownloading = true
-        currentlyDownloadingModelId = modelId
-        downloadStatus[modelId] = .downloading(progress: 0.0)
+        currentlyDownloadingModel = model
+        downloadStatus[model] = .downloading(progress: 0.0)
+        downloadProgress = 0.0
 
-        downloadTask = Task {
-            do {
-                log.info("Starting download of LLM model: \(modelId)")
+        log.info("Starting download of LLM model: \(model.displayName)")
+        log.info("URL: \(model.downloadURL)")
 
-                let hub = HubApi()
+        let destinationURL = modelPath(for: model)
 
-                // Download model files with progress tracking
-                _ = try await hub.snapshot(
-                    from: modelId,
-                    matching: ["*.safetensors", "config.json", "tokenizer*", "*.json"]
-                ) { [weak self] progress in
-                    guard let self else { return }
-                    Task { @MainActor in
-                        self.downloadProgress = progress.fractionCompleted
-                        self.downloadStatus[modelId] = .downloading(progress: progress.fractionCompleted)
+        // Create download task
+        let session = URLSession(configuration: .default)
+        downloadTask = session.downloadTask(with: model.downloadURL) { [weak self] tempURL, response, error in
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+
+                if let error {
+                    self.downloadStatus[model] = .error(error.localizedDescription)
+                    self.isDownloading = false
+                    self.currentlyDownloadingModel = nil
+                    log.error("Failed to download model: \(error.localizedDescription)")
+                    return
+                }
+
+                guard let tempURL else {
+                    self.downloadStatus[model] = .error("No file downloaded")
+                    self.isDownloading = false
+                    self.currentlyDownloadingModel = nil
+                    return
+                }
+
+                do {
+                    // Remove existing file if present
+                    if self.fileManager.fileExists(atPath: destinationURL.path) {
+                        try self.fileManager.removeItem(at: destinationURL)
                     }
-                }
 
-                await MainActor.run {
-                    self.downloadStatus[modelId] = .downloaded
+                    // Move downloaded file to destination
+                    try self.fileManager.moveItem(at: tempURL, to: destinationURL)
+
+                    self.downloadStatus[model] = .downloaded
                     self.isDownloading = false
-                    self.currentlyDownloadingModelId = nil
-                    log.info("Successfully downloaded LLM model: \(modelId)")
-                }
-            } catch {
-                await MainActor.run {
-                    self.downloadStatus[modelId] = .error(error.localizedDescription)
+                    self.currentlyDownloadingModel = nil
+                    self.downloadProgress = 1.0
+                    log.info("Successfully downloaded model: \(model.displayName)")
+                } catch {
+                    self.downloadStatus[model] = .error(error.localizedDescription)
                     self.isDownloading = false
-                    self.currentlyDownloadingModelId = nil
-                    log.error("Failed to download LLM model \(modelId): \(error.localizedDescription)")
+                    self.currentlyDownloadingModel = nil
+                    log.error("Failed to save model: \(error.localizedDescription)")
                 }
             }
         }
+
+        // Observe download progress
+        observation = downloadTask?.progress.observe(\.fractionCompleted) { [weak self] progress, _ in
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                self.downloadProgress = progress.fractionCompleted
+                self.downloadStatus[model] = .downloading(progress: progress.fractionCompleted)
+            }
+        }
+
+        downloadTask?.resume()
     }
 
     /// Cancel the current download
     func cancelDownload() {
         downloadTask?.cancel()
         downloadTask = nil
+        observation?.invalidate()
+        observation = nil
 
-        if let modelId = currentlyDownloadingModelId {
-            downloadStatus[modelId] = .notDownloaded
+        if let model = currentlyDownloadingModel {
+            downloadStatus[model] = .notDownloaded
         }
 
         isDownloading = false
-        currentlyDownloadingModelId = nil
+        currentlyDownloadingModel = nil
         downloadProgress = 0.0
     }
 
@@ -148,35 +160,16 @@ class LLMModelManager: ObservableObject {
 
     /// Delete a downloaded model
     func deleteModel(_ model: LLMModel) throws {
-        try deleteModel(model.modelId)
-    }
+        let path = modelPath(for: model)
 
-    /// Delete a model by ID
-    func deleteModel(_ modelId: String) throws {
-        let modelPath = modelsDirectory.appendingPathComponent(modelId.replacingOccurrences(of: "/", with: "--"))
-
-        guard fileManager.fileExists(atPath: modelPath.path) else {
-            log.warning("Cannot delete model \(modelId): not found")
+        guard fileManager.fileExists(atPath: path.path) else {
+            log.warning("Cannot delete model \(model.displayName): not found")
             return
         }
 
-        try fileManager.removeItem(at: modelPath)
-        downloadStatus[modelId] = .notDownloaded
-        log.info("Deleted LLM model: \(modelId)")
-    }
-
-    /// Get model size description
-    func getModelSizeDescription(_ model: LLMModel) -> String {
-        model.sizeDescription
-    }
-
-    /// Get model size description by ID
-    func getModelSizeDescription(_ modelId: String) -> String {
-        // Try to find the model in our enum
-        if let model = LLMModel.allCases.first(where: { $0.modelId == modelId }) {
-            return model.sizeDescription
-        }
-        return "Unknown size"
+        try fileManager.removeItem(at: path)
+        downloadStatus[model] = .notDownloaded
+        log.info("Deleted LLM model: \(model.displayName)")
     }
 
     /// Open the models folder in Finder

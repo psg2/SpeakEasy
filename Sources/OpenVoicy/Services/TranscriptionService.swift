@@ -1,5 +1,7 @@
 import Foundation
 
+private let log = FileLogger.shared
+
 enum TranscriptionError: LocalizedError {
     case invalidApiKey
     case fileTooLarge
@@ -113,14 +115,14 @@ class TranscriptionService {
         log.info("Starting LLM enrichment...")
 
         do {
+            // Get model file path
+            let modelURL = await LLMModelManager.shared.modelPath(for: self.settings.selectedLLMModel)
+
             // Load the model if needed
-            try await LocalLLMService.shared.loadModel(self.settings.selectedLLMModel.modelId)
+            try await LocalLLMService.shared.loadModel(from: modelURL)
 
             // Enrich the transcription
-            let enrichedText = try await LocalLLMService.shared.enrichTranscription(
-                text,
-                temperature: self.settings.llmTemperature
-            )
+            let enrichedText = try await LocalLLMService.shared.enrichTranscription(text)
 
             log.info("LLM enrichment completed successfully")
             return enrichedText

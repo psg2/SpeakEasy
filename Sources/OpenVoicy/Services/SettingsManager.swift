@@ -163,7 +163,7 @@ class SettingsManager: ObservableObject {
     }
 
     var isLLMReady: Bool {
-        LLMModelManager.isModelDownloadedSync(self.selectedLLMModel.modelId)
+        LLMModelManager.isModelDownloadedSync(self.selectedLLMModel)
     }
 
     var canTranscribe: Bool {
