@@ -18,7 +18,20 @@ A macOS native speech-to-text app with global hotkey support, offering both clou
 - Microphone access permission
 - Accessibility permission (for auto-typing)
 
-## Setup
+## Installation
+
+Download the latest release from [Releases](../../releases):
+
+1. Download and extract `SpeakEasy-vX.X.X-macOS.zip`
+2. Remove the quarantine attribute (required for unsigned apps):
+   ```bash
+   xattr -cr ~/Downloads/SpeakEasy.app
+   ```
+3. Move `SpeakEasy.app` to your Applications folder
+4. Open the app (you may need to right-click and select "Open" the first time)
+5. Grant microphone and accessibility permissions when prompted
+
+## Development Setup
 
 1. **Build & Run** — Run `dev` (via mise) to build and launch
 2. **Grant Permissions** — Allow microphone and accessibility access when prompted
@@ -62,6 +75,26 @@ struct MyFeatureTests {
     }
 }
 ```
+
+## Releasing
+
+To publish a new version:
+
+1. **Create and push a version tag**:
+   ```bash
+   git tag v1.0.0
+   git push origin v1.0.0
+   ```
+
+2. The [Release workflow](.github/workflows/release.yml) will automatically:
+   - Build the app for macOS
+   - Create a ZIP archive with the `.app` bundle
+   - Generate a SHA256 checksum
+   - Create a GitHub Release with auto-generated release notes
+
+Alternatively, trigger a release manually from the Actions tab using "workflow_dispatch" and specifying a version (e.g., `v1.0.0`). The workflow will create the tag automatically.
+
+**Note:** Use semantic versioning (e.g., `v1.0.0`). Tags containing `-` (e.g., `v1.0.0-beta`) are marked as pre-releases.
 
 ## Tech Stack
 
