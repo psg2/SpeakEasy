@@ -1,4 +1,4 @@
-# OpenVoicy
+# SpeakEasy
 
 A macOS native speech-to-text app with global hotkey support, offering both cloud (OpenAI Whisper API) and local (WhisperKit) transcription.
 
@@ -47,11 +47,11 @@ swift test
 
 ### Adding Tests
 
-Tests live in `Tests/OpenVoicyTests/` and use Swift Testing:
+Tests live in `Tests/SpeakEasyTests/` and use Swift Testing:
 
 ```swift
 import Testing
-@testable import OpenVoicyLib
+@testable import SpeakEasyLib
 
 @Suite("My Feature Tests")
 struct MyFeatureTests {

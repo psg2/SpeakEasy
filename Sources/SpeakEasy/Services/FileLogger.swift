@@ -9,18 +9,18 @@ class FileLogger {
 
     private let systemLogger: Logger
     private let fileURL: URL
-    private let queue = DispatchQueue(label: "com.openvoicy.filelogger", qos: .utility)
+    private let queue = DispatchQueue(label: "com.speakeasy.filelogger", qos: .utility)
     private let dateFormatter: DateFormatter
     private let maxFileSize: Int64 = 5_000_000 // 5 MB
 
     static var logsDirectory: URL {
         FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("OpenVoicy", isDirectory: true)
+            .appendingPathComponent("SpeakEasy", isDirectory: true)
             .appendingPathComponent("Logs", isDirectory: true)
     }
 
     private init() {
-        self.systemLogger = Logger(subsystem: "com.openvoicy", category: "App")
+        self.systemLogger = Logger(subsystem: "com.speakeasy", category: "App")
 
         self.dateFormatter = DateFormatter()
         self.dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss.SSS"
@@ -33,14 +33,14 @@ class FileLogger {
         let logDateFormatter = DateFormatter()
         logDateFormatter.dateFormat = "yyyy-MM-dd"
         let dateString = logDateFormatter.string(from: Date())
-        self.fileURL = logsDir.appendingPathComponent("openvoicy-\(dateString).log")
+        self.fileURL = logsDir.appendingPathComponent("speakeasy-\(dateString).log")
 
         // Clean up old log files (keep last 7 days)
         self.cleanupOldLogs()
 
         // Write startup marker
         self.writeToFile("═══════════════════════════════════════════════════════════════")
-        self.writeToFile("  OpenVoicy Started - \(self.dateFormatter.string(from: Date()))")
+        self.writeToFile("  SpeakEasy Started - \(self.dateFormatter.string(from: Date()))")
         self.writeToFile("═══════════════════════════════════════════════════════════════")
     }
 

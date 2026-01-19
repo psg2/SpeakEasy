@@ -1,10 +1,10 @@
 import Combine
-import OpenVoicyLib
+import SpeakEasyLib
 import SwiftData
 import SwiftUI
 
 @main
-struct OpenVoicyApp: App {
+struct SpeakEasyApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
     var body: some Scene {

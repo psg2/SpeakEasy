@@ -374,7 +374,7 @@ struct SettingsView: View {
 
             Spacer()
 
-            Text("OpenVoicy v1.0")
+            Text("SpeakEasy v1.0")
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .padding(16)
@@ -1070,7 +1070,7 @@ struct SettingsView: View {
 
     private var aboutContent: some View {
         VStack(spacing: 20) {
-            self.settingsCard("About OpenVoicy") {
+            self.settingsCard("About SpeakEasy") {
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
                         Image(systemName: "waveform.circle.fill")
@@ -1081,7 +1081,7 @@ struct SettingsView: View {
                                 endPoint: .bottomTrailing))
 
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("OpenVoicy")
+                            Text("SpeakEasy")
                                 .font(.title2)
                                 .fontWeight(.semibold)
                             Text("Version 1.0.0")

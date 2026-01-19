@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import OpenVoicyLib
+@testable import SpeakEasyLib
 
 @Suite("TimeFormatters Tests")
 struct TimeFormattersTests {

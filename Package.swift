@@ -22,9 +22,9 @@ let package = Package(
                 "WhisperKit",
                 .product(name: "LLM", package: "LLM.swift"),
             ],
-            path: "Sources/OpenVoicy"),
+            path: "Sources/SpeakEasy"),
         .testTarget(
             name: "SpeakEasyTests",
             dependencies: ["SpeakEasyLib"],
-            path: "Tests/OpenVoicyTests"),
+            path: "Tests/SpeakEasyTests"),
     ])
