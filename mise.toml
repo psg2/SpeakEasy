@@ -32,7 +32,7 @@ alias = "lint"
 
 [tasks.test]
 description = "Run Swift tests"
-run = "swift test"
+run = "swift test --parallel"
 alias = "t"
 
 [tasks.dev]
