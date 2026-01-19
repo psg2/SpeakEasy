@@ -12,14 +12,14 @@ struct TranscriptionDetailView: View {
     @State private var showRawText: Bool = false
 
     private var hasSnippetReplacements: Bool {
-        transcription.rawText != nil && transcription.rawText != transcription.text
+        self.transcription.rawText != nil && self.transcription.rawText != self.transcription.text
     }
 
     private var displayedText: String {
-        if showRawText, let rawText = transcription.rawText {
+        if self.showRawText, let rawText = transcription.rawText {
             return rawText
         }
-        return transcription.text
+        return self.transcription.text
     }
 
     var body: some View {
