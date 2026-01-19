@@ -4,6 +4,7 @@ hk = "latest"
 typos = "latest"
 swiftlint = "latest"
 actionlint = "latest"
+ghalint = "latest"
 "asdf:swiftformat" = "latest"
 
 [settings]
