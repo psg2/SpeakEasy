@@ -11,13 +11,13 @@ ghalint = "latest"
 activate_aggressive = true
 
 [tasks.build]
-description = "Build the OpenVoicy application"
-run = "xcodebuild -project OpenVoicy.xcodeproj -scheme OpenVoicy -configuration Debug build CODE_SIGN_IDENTITY=\"\" CODE_SIGNING_REQUIRED=NO"
+description = "Build the SpeakEasy application"
+run = "xcodebuild -project SpeakEasy.xcodeproj -scheme SpeakEasy -configuration Debug build CODE_SIGN_IDENTITY=\"\" CODE_SIGNING_REQUIRED=NO"
 alias = "b"
 
 [tasks.open]
-description = "Open the built OpenVoicy application"
-run = "open /Users/arado/Library/Developer/Xcode/DerivedData/OpenVoicy-ckkkjzkfjvlqatfgihmivypagacj/Build/Products/Debug/OpenVoicy.app"
+description = "Open the built SpeakEasy application"
+run = "open /Users/arado/Library/Developer/Xcode/DerivedData/SpeakEasy-ckkkjzkfjvlqatfgihmivypagacj/Build/Products/Debug/SpeakEasy.app"
 alias = "o"
 
 [tasks.format]

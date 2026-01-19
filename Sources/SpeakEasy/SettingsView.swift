@@ -323,6 +323,7 @@ struct SettingsView: View {
     @State private var showOverwriteConfirmation: Bool = false
     @State private var pendingSnippetKey: String = ""
     @State private var pendingSnippetValue: String = ""
+    @State private var whisperPrompt: String = ""
 
     enum ApiKeyValidationResult {
         case success
@@ -369,7 +370,7 @@ struct SettingsView: View {
 
             Spacer()
 
-            Text("OpenVoicy v1.0")
+            Text("SpeakEasy v1.0")
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .padding(16)
@@ -458,6 +459,42 @@ struct SettingsView: View {
                     description: "Type to search or select from the list")
                 {
                     LanguageSearchField(selectedLanguage: self.$selectedLanguage)
+                }
+            }
+
+            self.settingsCard("Whisper Prompt") {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Provide context or custom words to improve transcription accuracy. Limited to ~224 tokens.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+
+                    TextEditor(text: self.$whisperPrompt)
+                        .font(.body)
+                        .frame(height: 80)
+                        .padding(4)
+                        .background(Color(NSColor.textBackgroundColor))
+                        .cornerRadius(6)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 6)
+                                .stroke(Color.secondary.opacity(0.3), lineWidth: 1))
+
+                    HStack {
+                        Text("\(self.whisperPrompt.count) characters")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+
+                        Spacer()
+
+                        if self.whisperPrompt.count > 800 {
+                            HStack(spacing: 4) {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .foregroundColor(.orange)
+                                Text("Prompt may be truncated")
+                            }
+                            .font(.caption)
+                            .foregroundColor(.orange)
+                        }
+                    }
                 }
             }
 
@@ -993,7 +1030,7 @@ struct SettingsView: View {
 
     private var aboutContent: some View {
         VStack(spacing: 20) {
-            self.settingsCard("About OpenVoicy") {
+            self.settingsCard("About SpeakEasy") {
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
                         Image(systemName: "waveform.circle.fill")
@@ -1004,7 +1041,7 @@ struct SettingsView: View {
                                 endPoint: .bottomTrailing))
 
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("OpenVoicy")
+                            Text("SpeakEasy")
                                 .font(.title2)
                                 .fontWeight(.semibold)
                             Text("Version 1.0.0")
@@ -1126,6 +1163,7 @@ struct SettingsView: View {
         self.selectedModel = self.settings.selectedWhisperModel
         self.selectedModelId = self.settings.selectedModelId
         self.snippets = self.settings.snippets
+        self.whisperPrompt = self.settings.whisperPrompt
     }
 
     private func saveSettings() {
@@ -1138,6 +1176,7 @@ struct SettingsView: View {
         self.settings.selectedWhisperModel = self.selectedModel
         self.settings.selectedModelId = self.selectedModelId
         self.settings.snippets = self.snippets
+        self.settings.whisperPrompt = self.whisperPrompt
 
         if self.settings.shortcutKeyCode != self.shortcutKeyCode ||
             self.settings.shortcutModifierFlags != self.shortcutModifierFlags

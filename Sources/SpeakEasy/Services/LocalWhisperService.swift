@@ -59,7 +59,7 @@ class LocalWhisperService {
         }
     }
 
-    func transcribe(audioFileURL: URL, language: String? = nil) async throws -> String {
+    func transcribe(audioFileURL: URL, language: String? = nil, prompt: String? = nil) async throws -> String {
         let totalStart = CFAbsoluteTimeGetCurrent()
 
         log.whisper("══════════════════════════════════════════")
@@ -88,10 +88,21 @@ class LocalWhisperService {
         let transcribeStart = CFAbsoluteTimeGetCurrent()
         log.whisper("Running WhisperKit inference...")
 
+        // Build decoding options
+        var decodingOptions = DecodingOptions(language: language)
+
+        // Convert prompt text to tokens if provided
+        if let prompt, !prompt.isEmpty, let tokenizer = whisperKit.tokenizer {
+            let promptTokens = tokenizer.encode(text: prompt).filter { $0 < tokenizer.specialTokens.specialTokenBegin }
+            if !promptTokens.isEmpty {
+                decodingOptions.promptTokens = promptTokens
+                log.whisper("Using prompt with \(promptTokens.count) tokens")
+            }
+        }
+
         let results = try await whisperKit.transcribe(
             audioPath: audioFileURL.path,
-            decodeOptions: DecodingOptions(
-                language: language))
+            decodeOptions: decodingOptions)
         let transcribeTime = CFAbsoluteTimeGetCurrent() - transcribeStart
 
         let transcription = results.map(\.text).joined(separator: " ")
