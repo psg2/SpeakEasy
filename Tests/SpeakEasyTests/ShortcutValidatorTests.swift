@@ -5,11 +5,10 @@ import Testing
 
 @Suite("ShortcutValidator Tests")
 struct ShortcutValidatorTests {
-
     // MARK: - Valid Shortcuts
 
     @Test("Valid shortcut with single modifier and key")
-    func testValidShortcutWithSingleModifier() {
+    func validShortcutWithSingleModifier() {
         let result = ShortcutValidator.validate(keyCode: kVK_ANSI_K, modifiers: cmdKey)
 
         if case .valid = result {
@@ -20,11 +19,10 @@ struct ShortcutValidatorTests {
     }
 
     @Test("Valid shortcut with two modifiers")
-    func testValidShortcutWithTwoModifiers() {
+    func validShortcutWithTwoModifiers() {
         let result = ShortcutValidator.validate(
             keyCode: kVK_ANSI_K,
-            modifiers: cmdKey | shiftKey
-        )
+            modifiers: cmdKey | shiftKey)
 
         if case .valid = result {
             // Success
@@ -34,14 +32,13 @@ struct ShortcutValidatorTests {
     }
 
     @Test("Invalid shortcut with three modifiers (exceeds 3-key limit)")
-    func testInvalidShortcutWithThreeModifiers() {
+    func invalidShortcutWithThreeModifiers() {
         // 3 modifiers + 1 key = 4 keys total, exceeds 3-key limit
         let result = ShortcutValidator.validate(
             keyCode: kVK_ANSI_K,
-            modifiers: cmdKey | shiftKey | optionKey
-        )
+            modifiers: cmdKey | shiftKey | optionKey)
 
-        if case .invalid(let reason) = result {
+        if case let .invalid(reason) = result {
             #expect(reason.contains("3 keys or fewer"))
         } else {
             Issue.record("Expected invalid result for 3 modifiers + key, got \(result)")
@@ -49,7 +46,7 @@ struct ShortcutValidatorTests {
     }
 
     @Test("Valid F-key without modifiers")
-    func testValidFKeyWithoutModifiers() {
+    func validFKeyWithoutModifiers() {
         let result = ShortcutValidator.validate(keyCode: kVK_F6, modifiers: 0)
 
         if case .valid = result {
@@ -60,7 +57,7 @@ struct ShortcutValidatorTests {
     }
 
     @Test("Valid special key without modifiers")
-    func testValidSpecialKeyWithoutModifiers() {
+    func validSpecialKeyWithoutModifiers() {
         let result = ShortcutValidator.validate(keyCode: kVK_PageDown, modifiers: 0)
 
         if case .valid = result {
@@ -73,13 +70,12 @@ struct ShortcutValidatorTests {
     // MARK: - Invalid Shortcuts - Too Many Keys
 
     @Test("Invalid shortcut with four modifiers (too many keys)")
-    func testInvalidShortcutWithFourModifiers() {
+    func invalidShortcutWithFourModifiers() {
         let result = ShortcutValidator.validate(
             keyCode: kVK_ANSI_K,
-            modifiers: cmdKey | shiftKey | optionKey | controlKey
-        )
+            modifiers: cmdKey | shiftKey | optionKey | controlKey)
 
-        if case .invalid(let reason) = result {
+        if case let .invalid(reason) = result {
             #expect(reason.contains("3 keys or fewer"))
         } else {
             Issue.record("Expected invalid result for too many keys, got \(result)")
@@ -89,10 +85,10 @@ struct ShortcutValidatorTests {
     // MARK: - Invalid Shortcuts - No Modifier or Special Key
 
     @Test("Invalid shortcut with regular key and no modifier")
-    func testInvalidShortcutWithoutModifier() {
+    func invalidShortcutWithoutModifier() {
         let result = ShortcutValidator.validate(keyCode: kVK_ANSI_A, modifiers: 0)
 
-        if case .invalid(let reason) = result {
+        if case let .invalid(reason) = result {
             #expect(reason.contains("modifier") || reason.contains("special key"))
         } else {
             Issue.record("Expected invalid result for key without modifier, got \(result)")
@@ -102,10 +98,10 @@ struct ShortcutValidatorTests {
     // MARK: - Reserved Shortcuts - macOS
 
     @Test("Reserved macOS shortcut: Cmd+C (Copy)")
-    func testReservedMacOSCmdC() {
+    func reservedMacOSCmdC() {
         let result = ShortcutValidator.validate(keyCode: kVK_ANSI_C, modifiers: cmdKey)
 
-        if case .invalid(let reason) = result {
+        if case let .invalid(reason) = result {
             #expect(reason.contains("reserved"))
         } else {
             Issue.record("Expected Cmd+C to be reserved, got \(result)")
@@ -113,10 +109,10 @@ struct ShortcutValidatorTests {
     }
 
     @Test("Reserved macOS shortcut: Cmd+V (Paste)")
-    func testReservedMacOSCmdV() {
+    func reservedMacOSCmdV() {
         let result = ShortcutValidator.validate(keyCode: kVK_ANSI_V, modifiers: cmdKey)
 
-        if case .invalid(let reason) = result {
+        if case let .invalid(reason) = result {
             #expect(reason.contains("reserved"))
         } else {
             Issue.record("Expected Cmd+V to be reserved, got \(result)")
@@ -124,10 +120,10 @@ struct ShortcutValidatorTests {
     }
 
     @Test("Reserved macOS shortcut: Cmd+Q (Quit)")
-    func testReservedMacOSCmdQ() {
+    func reservedMacOSCmdQ() {
         let result = ShortcutValidator.validate(keyCode: kVK_ANSI_Q, modifiers: cmdKey)
 
-        if case .invalid(let reason) = result {
+        if case let .invalid(reason) = result {
             #expect(reason.contains("reserved"))
         } else {
             Issue.record("Expected Cmd+Q to be reserved, got \(result)")
@@ -135,10 +131,10 @@ struct ShortcutValidatorTests {
     }
 
     @Test("Reserved macOS shortcut: Cmd+Space (Spotlight)")
-    func testReservedMacOSCmdSpace() {
+    func reservedMacOSCmdSpace() {
         let result = ShortcutValidator.validate(keyCode: kVK_Space, modifiers: cmdKey)
 
-        if case .invalid(let reason) = result {
+        if case let .invalid(reason) = result {
             #expect(reason.contains("reserved"))
         } else {
             Issue.record("Expected Cmd+Space to be reserved, got \(result)")
@@ -146,13 +142,12 @@ struct ShortcutValidatorTests {
     }
 
     @Test("Reserved macOS shortcut: Cmd+Shift+Z (Redo)")
-    func testReservedMacOSCmdShiftZ() {
+    func reservedMacOSCmdShiftZ() {
         let result = ShortcutValidator.validate(
             keyCode: kVK_ANSI_Z,
-            modifiers: cmdKey | shiftKey
-        )
+            modifiers: cmdKey | shiftKey)
 
-        if case .invalid(let reason) = result {
+        if case let .invalid(reason) = result {
             #expect(reason.contains("reserved"))
         } else {
             Issue.record("Expected Cmd+Shift+Z to be reserved, got \(result)")
@@ -160,10 +155,10 @@ struct ShortcutValidatorTests {
     }
 
     @Test("Reserved macOS shortcut: Cmd+, (Preferences)")
-    func testReservedMacOSCmdComma() {
+    func reservedMacOSCmdComma() {
         let result = ShortcutValidator.validate(keyCode: kVK_ANSI_Comma, modifiers: cmdKey)
 
-        if case .invalid(let reason) = result {
+        if case let .invalid(reason) = result {
             #expect(reason.contains("reserved"))
         } else {
             Issue.record("Expected Cmd+, to be reserved, got \(result)")
@@ -173,10 +168,10 @@ struct ShortcutValidatorTests {
     // MARK: - Reserved Shortcuts - Windows
 
     @Test("Reserved Windows shortcut: Ctrl+C (Copy)")
-    func testReservedWindowsCtrlC() {
+    func reservedWindowsCtrlC() {
         let result = ShortcutValidator.validate(keyCode: kVK_ANSI_C, modifiers: controlKey)
 
-        if case .invalid(let reason) = result {
+        if case let .invalid(reason) = result {
             #expect(reason.contains("reserved"))
         } else {
             Issue.record("Expected Ctrl+C to be reserved, got \(result)")
@@ -184,10 +179,10 @@ struct ShortcutValidatorTests {
     }
 
     @Test("Reserved Windows shortcut: Ctrl+V (Paste)")
-    func testReservedWindowsCtrlV() {
+    func reservedWindowsCtrlV() {
         let result = ShortcutValidator.validate(keyCode: kVK_ANSI_V, modifiers: controlKey)
 
-        if case .invalid(let reason) = result {
+        if case let .invalid(reason) = result {
             #expect(reason.contains("reserved"))
         } else {
             Issue.record("Expected Ctrl+V to be reserved, got \(result)")
@@ -195,10 +190,10 @@ struct ShortcutValidatorTests {
     }
 
     @Test("Reserved Windows shortcut: Alt+Tab")
-    func testReservedWindowsAltTab() {
+    func reservedWindowsAltTab() {
         let result = ShortcutValidator.validate(keyCode: kVK_Tab, modifiers: optionKey)
 
-        if case .invalid(let reason) = result {
+        if case let .invalid(reason) = result {
             #expect(reason.contains("reserved"))
         } else {
             Issue.record("Expected Alt+Tab to be reserved, got \(result)")
@@ -206,10 +201,10 @@ struct ShortcutValidatorTests {
     }
 
     @Test("Reserved Windows shortcut: F11 (Fullscreen)")
-    func testReservedWindowsF11() {
+    func reservedWindowsF11() {
         let result = ShortcutValidator.validate(keyCode: kVK_F11, modifiers: 0)
 
-        if case .invalid(let reason) = result {
+        if case let .invalid(reason) = result {
             #expect(reason.contains("reserved"))
         } else {
             Issue.record("Expected F11 to be reserved, got \(result)")
@@ -217,10 +212,10 @@ struct ShortcutValidatorTests {
     }
 
     @Test("Reserved Windows shortcut: F5 (Refresh)")
-    func testReservedWindowsF5() {
+    func reservedWindowsF5() {
         let result = ShortcutValidator.validate(keyCode: kVK_F5, modifiers: 0)
 
-        if case .invalid(let reason) = result {
+        if case let .invalid(reason) = result {
             #expect(reason.contains("reserved"))
         } else {
             Issue.record("Expected F5 to be reserved, got \(result)")
@@ -230,11 +225,10 @@ struct ShortcutValidatorTests {
     // MARK: - Edge Cases
 
     @Test("Non-reserved F-key with modifiers is valid")
-    func testNonReservedFKeyWithModifiers() {
+    func nonReservedFKeyWithModifiers() {
         let result = ShortcutValidator.validate(
             keyCode: kVK_F7,
-            modifiers: cmdKey | optionKey
-        )
+            modifiers: cmdKey | optionKey)
 
         if case .valid = result {
             // Success
@@ -244,13 +238,12 @@ struct ShortcutValidatorTests {
     }
 
     @Test("Arrow keys with modifiers are reserved on macOS")
-    func testArrowKeysWithCmdReserved() {
+    func arrowKeysWithCmdReserved() {
         let result = ShortcutValidator.validate(
             keyCode: kVK_LeftArrow,
-            modifiers: cmdKey
-        )
+            modifiers: cmdKey)
 
-        if case .invalid(let reason) = result {
+        if case let .invalid(reason) = result {
             #expect(reason.contains("reserved"))
         } else {
             Issue.record("Expected Cmd+Left Arrow to be reserved, got \(result)")
