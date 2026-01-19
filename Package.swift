@@ -2,25 +2,25 @@
 import PackageDescription
 
 let package = Package(
-    name: "OpenVoicy",
+    name: "SpeakEasy",
     platforms: [
         .macOS(.v14),
     ],
     products: [
         .library(
-            name: "OpenVoicyLib",
-            targets: ["OpenVoicyLib"]),
+            name: "SpeakEasyLib",
+            targets: ["SpeakEasyLib"]),
     ],
     dependencies: [
         .package(url: "https://github.com/argmaxinc/WhisperKit", from: "0.9.0"),
     ],
     targets: [
         .target(
-            name: "OpenVoicyLib",
+            name: "SpeakEasyLib",
             dependencies: ["WhisperKit"],
-            path: "Sources/OpenVoicy"),
+            path: "Sources/SpeakEasy"),
         .testTarget(
-            name: "OpenVoicyTests",
-            dependencies: ["OpenVoicyLib"],
-            path: "Tests/OpenVoicyTests"),
+            name: "SpeakEasyTests",
+            dependencies: ["SpeakEasyLib"],
+            path: "Tests/SpeakEasyTests"),
     ])

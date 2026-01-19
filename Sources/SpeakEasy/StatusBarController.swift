@@ -33,7 +33,7 @@ public class StatusBarController: NSObject {
         if let button = self.statusItem?.button {
             button.image = NSImage(
                 systemSymbolName: "waveform",
-                accessibilityDescription: "OpenVoicy")
+                accessibilityDescription: "SpeakEasy")
             button.image?.isTemplate = true
         }
 
@@ -62,7 +62,7 @@ public class StatusBarController: NSObject {
         menu.addItem(NSMenuItem.separator())
 
         let quitItem = NSMenuItem(
-            title: "Quit OpenVoicy",
+            title: "Quit SpeakEasy",
             action: #selector(self.quitApp),
             keyEquivalent: "q")
         quitItem.keyEquivalentModifierMask = [.command]
@@ -86,7 +86,7 @@ public class StatusBarController: NSObject {
                 defer: false)
 
             window.contentViewController = hostingController
-            window.title = "OpenVoicy"
+            window.title = "SpeakEasy"
             window.isReleasedWhenClosed = false
             window.center()
             window.setFrameAutosaveName("HistoryWindow")

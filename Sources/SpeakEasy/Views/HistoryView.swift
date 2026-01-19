@@ -66,7 +66,7 @@ public struct HistoryView: View {
                         colors: [.cyan, .purple],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing))
-                Text("OpenVoicy")
+                Text("SpeakEasy")
                     .font(.title2)
                     .fontWeight(.semibold)
             }

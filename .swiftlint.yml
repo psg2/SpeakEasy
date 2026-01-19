@@ -1,6 +1,6 @@
 # Paths to include
 included:
-  - OpenVoicy
+  - SpeakEasy
 
 # Analyzer rules (require compilation)
 analyzer_rules:

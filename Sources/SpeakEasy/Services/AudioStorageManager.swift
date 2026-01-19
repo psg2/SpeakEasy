@@ -13,7 +13,7 @@ class AudioStorageManager {
         let appSupport = self.fileManager.urls(
             for: .applicationSupportDirectory,
             in: .userDomainMask).first!
-        return appSupport.appendingPathComponent("OpenVoicy", isDirectory: true)
+        return appSupport.appendingPathComponent("SpeakEasy", isDirectory: true)
     }
 
     var recordingsDirectory: URL {
