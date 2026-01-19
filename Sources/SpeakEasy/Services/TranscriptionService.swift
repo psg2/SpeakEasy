@@ -78,11 +78,18 @@ class TranscriptionService {
             try await self.transcribeWithLocalWhisper(audioFileURL: audioFileURL, language: language)
         }
 
+        log.info("[FLOW] 1. Raw transcription: \"\(rawText)\"")
+
         var processedText = self.applySnippetReplacements(rawText)
+        log.info("[FLOW] 2. After snippets: \"\(processedText)\"")
 
         // Apply LLM enrichment if enabled and model is ready
         if self.settings.llmEnrichmentEnabled, self.settings.isLLMReady {
+            log.info("[FLOW] 3. LLM enrichment enabled, processing...")
             processedText = try await self.enrichWithLLM(processedText)
+            log.info("[FLOW] 4. After LLM: \"\(processedText)\"")
+        } else {
+            log.info("[FLOW] 3. LLM enrichment skipped (enabled=\(self.settings.llmEnrichmentEnabled), ready=\(self.settings.isLLMReady))")
         }
 
         return (rawText, processedText)

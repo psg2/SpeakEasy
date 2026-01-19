@@ -49,16 +49,20 @@ class LocalLLMService {
         // Unload existing model first
         unloadModel()
 
-        // System prompt for transcription enrichment
+        // System prompt for transcription enrichment - very strict to avoid chatty responses
         let systemPrompt = """
-        You are a transcription editor. Your task is to fix spelling errors, add proper \
-        punctuation and capitalization to transcriptions. Preserve the original words and \
-        meaning. Only correct obvious errors. Do not add or remove content. Output only \
-        the corrected text without explanations.
+        You are a text formatter. Fix punctuation and capitalization only. \
+        Output ONLY the corrected text. No explanations. No translations. No commentary. \
+        If the text is already correct, output it unchanged.
         """
 
-        // Initialize LLM with ChatML template
-        llm = LLM(from: url, template: .chatML(systemPrompt))
+        // Initialize LLM with ChatML template and limited token count
+        llm = LLM(
+            from: url,
+            template: .chatML(systemPrompt),
+            temp: 0.1, // Low temperature for more deterministic output
+            maxTokenCount: 512 // Limit context to prevent runaway generation
+        )
 
         currentModelPath = url.path
 
@@ -72,24 +76,64 @@ class LocalLLMService {
             throw LLMError.modelNotLoaded
         }
 
-        log.info("Starting LLM enrichment...")
+        log.info("[LLM] Input text: \"\(text)\"")
         let enrichStart = CFAbsoluteTimeGetCurrent()
 
-        // Create prompt for transcription enrichment
-        let prompt = "Correct this transcription: \(text)"
+        // Create prompt - direct instruction followed by the text
+        let prompt = "Fix punctuation and capitalization:\n\n\(text)"
+        log.info("[LLM] Full prompt: \"\(prompt)\"")
 
-        do {
-            // Get completion from LLM
-            let result = await llm.getCompletion(from: prompt)
+        // Get completion from LLM
+        let result = await llm.getCompletion(from: prompt)
+        log.info("[LLM] Raw LLM output: \"\(result)\"")
 
-            let enrichTime = CFAbsoluteTimeGetCurrent() - enrichStart
-            let enrichedText = result.trimmingCharacters(in: .whitespacesAndNewlines)
+        let enrichTime = CFAbsoluteTimeGetCurrent() - enrichStart
 
-            log.info("LLM enrichment completed in \(String(format: "%.2f", enrichTime))s")
-            log.info("Generated \(enrichedText.count) characters")
+        // Clean up result - remove any markdown, extra text, or repetition
+        var enrichedText = result.trimmingCharacters(in: .whitespacesAndNewlines)
+        log.info("[LLM] After trim: \"\(enrichedText)\"")
 
-            return enrichedText
+        // If result is empty, return original
+        if enrichedText.isEmpty {
+            log.warning("[LLM] Output is empty, using original text")
+            return text
         }
+
+        // If result is much longer than input, it's likely hallucinating - return original
+        if enrichedText.count > text.count * 3 {
+            log.warning("[LLM] Output too long (\(enrichedText.count) vs \(text.count)), using original")
+            return text
+        }
+
+        // Detect repetition loops (same phrase repeated)
+        if let repetition = detectRepetition(in: enrichedText) {
+            log.warning("[LLM] Detected repetition loop: \"\(repetition)\", using original")
+            return text
+        }
+
+        // Remove common LLM response patterns
+        if enrichedText.lowercased().hasPrefix("here") ||
+            enrichedText.lowercased().hasPrefix("the corrected") ||
+            enrichedText.lowercased().hasPrefix("corrected:")
+        {
+            log.info("[LLM] Detected chatty prefix, extracting text after colon")
+            // Try to extract just the actual text after common prefixes
+            if let colonIndex = enrichedText.firstIndex(of: ":") {
+                let afterColon = enrichedText[enrichedText.index(after: colonIndex)...]
+                enrichedText = afterColon.trimmingCharacters(in: .whitespacesAndNewlines)
+                log.info("[LLM] After prefix removal: \"\(enrichedText)\"")
+            }
+        }
+
+        // Remove markdown bold markers
+        if enrichedText.contains("**") {
+            enrichedText = enrichedText.replacingOccurrences(of: "**", with: "")
+            log.info("[LLM] Removed markdown: \"\(enrichedText)\"")
+        }
+
+        log.info("[LLM] Final output: \"\(enrichedText)\" (took \(String(format: "%.2f", enrichTime))s)")
+
+        return enrichedText
     }
 
     /// Unload the current model to free memory
@@ -107,5 +151,30 @@ class LocalLLMService {
     /// Get the currently loaded model path
     var loadedModelPath: String? {
         currentModelPath
+    }
+
+    // MARK: - Private Helpers
+
+    /// Detect if text contains repetitive phrases (sign of LLM loop)
+    private func detectRepetition(in text: String) -> String? {
+        let words = text.components(separatedBy: .whitespaces).filter { !$0.isEmpty }
+        guard words.count >= 6 else { return nil }
+
+        // Check for repeated sequences of 2-5 words
+        for windowSize in 2 ... 5 {
+            var sequenceCounts: [String: Int] = [:]
+
+            for i in 0 ..< (words.count - windowSize + 1) {
+                let sequence = words[i ..< i + windowSize].joined(separator: " ")
+                sequenceCounts[sequence, default: 0] += 1
+            }
+
+            // If any sequence appears more than 3 times, it's likely a loop
+            for (sequence, count) in sequenceCounts where count > 3 {
+                return sequence
+            }
+        }
+
+        return nil
     }
 }
