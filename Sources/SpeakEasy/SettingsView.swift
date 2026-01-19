@@ -304,6 +304,7 @@ struct SettingsView: View {
     @Environment(\.dismiss) var dismiss
     @ObservedObject private var settings = SettingsManager.shared
     @ObservedObject private var modelManager = WhisperModelManager.shared
+    @ObservedObject private var llmModelManager = LLMModelManager.shared
 
     @State private var selectedTab: SettingsTab = .general
     @State private var apiKey: String = ""
@@ -324,6 +325,9 @@ struct SettingsView: View {
     @State private var pendingSnippetKey: String = ""
     @State private var pendingSnippetValue: String = ""
     @State private var whisperPrompt: String = ""
+    @State private var llmEnrichmentEnabled: Bool = false
+    @State private var selectedLLMModel: LLMModel = .qwen15B
+    @State private var llmTemperature: Float = 0.3
 
     enum ApiKeyValidationResult {
         case success
@@ -493,6 +497,42 @@ struct SettingsView: View {
                             }
                             .font(.caption)
                             .foregroundColor(.orange)
+                        }
+                    }
+                }
+            }
+
+            self.settingsCard("AI Post-Processing") {
+                VStack(alignment: .leading, spacing: 16) {
+                    Toggle("Enhance transcriptions with local AI", isOn: self.$llmEnrichmentEnabled)
+                        .toggleStyle(.switch)
+
+                    Text(
+                        "Use a local AI model to add punctuation, fix spelling errors, and improve formatting. Runs entirely on your Mac with no data sent to the cloud.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+
+                    if self.llmEnrichmentEnabled {
+                        Divider()
+
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Model Selection")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+
+                            ForEach(LLMModel.allCases, id: \.self) { model in
+                                self.llmModelOption(model)
+                            }
+
+                            if !self.llmModelManager.isModelDownloaded(self.selectedLLMModel) {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "info.circle")
+                                        .foregroundColor(.blue)
+                                    Text("Download required before first use")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
                         }
                     }
                 }
@@ -1107,6 +1147,118 @@ struct SettingsView: View {
         NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: url.path)
     }
 
+    // MARK: - LLM Model Option
+
+    private func llmModelOption(_ model: LLMModel) -> some View {
+        let isSelected = self.selectedLLMModel == model
+        return Button(action: {
+            self.selectedLLMModel = model
+        }) {
+            HStack {
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .foregroundColor(isSelected ? .accentColor : .secondary)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 8) {
+                        Text(model.displayName)
+                            .font(.body)
+                            .fontWeight(.medium)
+
+                        Text(model.sizeDescription)
+                            .font(.caption)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color.secondary.opacity(0.2))
+                            .cornerRadius(4)
+
+                        Text(model.ramUsage)
+                            .font(.caption)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color.blue.opacity(0.15))
+                            .cornerRadius(4)
+                    }
+
+                    Text(model.qualityDescription)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+
+                Spacer()
+
+                self.llmModelActionButton(for: model)
+            }
+            .padding(10)
+            .background(isSelected ? Color.accentColor.opacity(0.1) : Color.clear)
+            .cornerRadius(6)
+        }
+        .buttonStyle(.plain)
+    }
+
+    @ViewBuilder
+    private func llmModelActionButton(for model: LLMModel) -> some View {
+        let status = self.llmModelManager.getStatus(for: model)
+
+        switch status {
+        case .downloaded, .loaded:
+            HStack(spacing: 8) {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundColor(.green)
+
+                Button(action: { try? self.llmModelManager.deleteModel(model) }) {
+                    Image(systemName: "trash")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .buttonStyle(.plain)
+                .help("Delete model")
+            }
+
+        case let .downloading(progress):
+            HStack(spacing: 8) {
+                ProgressView(value: progress)
+                    .frame(width: 60)
+
+                Text("\(Int(progress * 100))%")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .frame(width: 32, alignment: .trailing)
+
+                Button(action: { self.llmModelManager.cancelDownload() }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundColor(.secondary)
+                }
+                .buttonStyle(.plain)
+                .help("Cancel download")
+            }
+
+        case .notDownloaded:
+            Button(action: { self.llmModelManager.downloadModel(model) }) {
+                Image(systemName: "arrow.down.circle")
+                    .font(.title3)
+                    .foregroundColor(.accentColor)
+            }
+            .buttonStyle(.plain)
+            .disabled(self.llmModelManager.isDownloading)
+            .opacity(self.llmModelManager.isDownloading ? 0.5 : 1)
+            .help("Download model")
+
+        case let .error(message):
+            Button(action: { self.llmModelManager.downloadModel(model) }) {
+                Image(systemName: "arrow.clockwise.circle")
+                    .font(.title3)
+                    .foregroundColor(.orange)
+            }
+            .buttonStyle(.plain)
+            .disabled(self.llmModelManager.isDownloading)
+            .help("Retry download: \(message)")
+
+        case .loading:
+            ProgressView()
+                .scaleEffect(0.7)
+        }
+    }
+
     // MARK: - Helper Views
 
     private func settingsCard(
@@ -1164,6 +1316,9 @@ struct SettingsView: View {
         self.selectedModelId = self.settings.selectedModelId
         self.snippets = self.settings.snippets
         self.whisperPrompt = self.settings.whisperPrompt
+        self.llmEnrichmentEnabled = self.settings.llmEnrichmentEnabled
+        self.selectedLLMModel = self.settings.selectedLLMModel
+        self.llmTemperature = self.settings.llmTemperature
     }
 
     private func saveSettings() {
@@ -1177,6 +1332,9 @@ struct SettingsView: View {
         self.settings.selectedModelId = self.selectedModelId
         self.settings.snippets = self.snippets
         self.settings.whisperPrompt = self.whisperPrompt
+        self.settings.llmEnrichmentEnabled = self.llmEnrichmentEnabled
+        self.settings.selectedLLMModel = self.selectedLLMModel
+        self.settings.llmTemperature = self.llmTemperature
 
         if self.settings.shortcutKeyCode != self.shortcutKeyCode ||
             self.settings.shortcutModifierFlags != self.shortcutModifierFlags

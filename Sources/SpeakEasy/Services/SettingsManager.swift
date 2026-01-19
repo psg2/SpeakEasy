@@ -71,6 +71,27 @@ class SettingsManager: ObservableObject {
         }
     }
 
+    /// Enable LLM-based transcription enrichment
+    @Published var llmEnrichmentEnabled: Bool {
+        didSet {
+            self.defaults.set(self.llmEnrichmentEnabled, forKey: "llm_enrichment_enabled")
+        }
+    }
+
+    /// Selected LLM model for enrichment
+    @Published var selectedLLMModel: LLMModel {
+        didSet {
+            self.defaults.set(self.selectedLLMModel.rawValue, forKey: "selected_llm_model")
+        }
+    }
+
+    /// LLM temperature parameter (0.0-1.0, lower is more deterministic)
+    @Published var llmTemperature: Float {
+        didSet {
+            self.defaults.set(self.llmTemperature, forKey: "llm_temperature")
+        }
+    }
+
     init() {
         self.apiKey = self.defaults.string(forKey: "openai_api_key") ?? ""
         // Default to Option (2048/0x800) + Space (49/0x31)
@@ -115,6 +136,22 @@ class SettingsManager: ObservableObject {
 
         // Load Whisper prompt
         self.whisperPrompt = self.defaults.string(forKey: "whisper_prompt") ?? ""
+
+        // Load LLM enrichment settings
+        self.llmEnrichmentEnabled = self.defaults.bool(forKey: "llm_enrichment_enabled")
+
+        let llmModel: LLMModel = if let modelRaw = self.defaults.string(forKey: "selected_llm_model"),
+                                     let model = LLMModel(rawValue: modelRaw)
+        {
+            model
+        } else {
+            .qwen15B // Default to 1.5B model (balanced)
+        }
+        self.selectedLLMModel = llmModel
+
+        self.llmTemperature = self.defaults.float(forKey: "llm_temperature") != 0
+            ? self.defaults.float(forKey: "llm_temperature")
+            : 0.3 // Default temperature
     }
 
     var hasApiKey: Bool {
@@ -123,6 +160,10 @@ class SettingsManager: ObservableObject {
 
     var isLocalWhisperReady: Bool {
         WhisperModelManager.isModelDownloadedSync(self.selectedModelId)
+    }
+
+    var isLLMReady: Bool {
+        LLMModelManager.isModelDownloadedSync(self.selectedLLMModel)
     }
 
     var canTranscribe: Bool {

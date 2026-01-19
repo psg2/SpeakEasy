@@ -13,11 +13,15 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/argmaxinc/WhisperKit", from: "0.9.0"),
+        .package(url: "https://github.com/eastriverlee/LLM.swift", from: "1.3.0"),
     ],
     targets: [
         .target(
             name: "SpeakEasyLib",
-            dependencies: ["WhisperKit"],
+            dependencies: [
+                "WhisperKit",
+                .product(name: "LLM", package: "LLM.swift"),
+            ],
             path: "Sources/SpeakEasy"),
         .testTarget(
             name: "SpeakEasyTests",
