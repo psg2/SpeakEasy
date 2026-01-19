@@ -6,6 +6,8 @@ local linters = new Mapping<String, Step> {
 
   ["typos"] = Builtins.typos
 
+  ["actionlint"] = Builtins.actionlint
+
   // define a custom linter
   ["pkl"] {
     glob = "*.pkl"
