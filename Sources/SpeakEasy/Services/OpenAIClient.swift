@@ -62,7 +62,7 @@ class OpenAIClient {
 
     // MARK: - Transcription
 
-    func transcribe(audioData: Data, language: String?, apiKey: String) async throws -> String {
+    func transcribe(audioData: Data, language: String?, prompt: String?, apiKey: String) async throws -> String {
         guard !apiKey.isEmpty else {
             throw OpenAIError.invalidApiKey
         }
@@ -93,6 +93,12 @@ class OpenAIClient {
             body.append(Data("--\(boundary)\r\n".utf8))
             body.append(Data("Content-Disposition: form-data; name=\"language\"\r\n\r\n".utf8))
             body.append(Data("\(language)\r\n".utf8))
+        }
+
+        if let prompt, !prompt.isEmpty {
+            body.append(Data("--\(boundary)\r\n".utf8))
+            body.append(Data("Content-Disposition: form-data; name=\"prompt\"\r\n\r\n".utf8))
+            body.append(Data("\(prompt)\r\n".utf8))
         }
 
         body.append(Data("--\(boundary)\r\n".utf8))

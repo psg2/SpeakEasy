@@ -64,6 +64,13 @@ class SettingsManager: ObservableObject {
         }
     }
 
+    /// Whisper prompt for context and custom words (improves transcription accuracy)
+    @Published var whisperPrompt: String {
+        didSet {
+            self.defaults.set(self.whisperPrompt, forKey: "whisper_prompt")
+        }
+    }
+
     init() {
         self.apiKey = self.defaults.string(forKey: "openai_api_key") ?? ""
         // Default to Option (2048/0x800) + Space (49/0x31)
@@ -105,6 +112,9 @@ class SettingsManager: ObservableObject {
         } else {
             self.snippets = [:]
         }
+
+        // Load Whisper prompt
+        self.whisperPrompt = self.defaults.string(forKey: "whisper_prompt") ?? ""
     }
 
     var hasApiKey: Bool {
