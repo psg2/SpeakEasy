@@ -35,11 +35,11 @@ esac
 
 # Download and install Swift for Ubuntu (sandbox typically runs Ubuntu)
 if [ "$OS" = "linux" ]; then
-  # Use Swift 6.2.3 for Ubuntu 24.04 (matching .swift-version)
+  # Use Swift 6.2.3 for Ubuntu 22.04 (matching .swift-version)
   SWIFT_VERSION="6.2.3"
-  SWIFT_PLATFORM="ubuntu2404"
+  SWIFT_PLATFORM="ubuntu22.04"
   SWIFT_PACKAGE="swift-${SWIFT_VERSION}-RELEASE-${SWIFT_PLATFORM}"
-  SWIFT_URL="https://download.swift.org/swift-${SWIFT_VERSION}-release/ubuntu2404/swift-${SWIFT_VERSION}-RELEASE/${SWIFT_PACKAGE}.tar.gz"
+  SWIFT_URL="https://download.swift.org/swift-${SWIFT_VERSION}-release/ubuntu2204/swift-${SWIFT_VERSION}-RELEASE/${SWIFT_PACKAGE}.tar.gz"
 
   echo "Downloading Swift ${SWIFT_VERSION} for Ubuntu..."
 
@@ -52,11 +52,11 @@ if [ "$OS" = "linux" ]; then
   tar xzf /tmp/swift.tar.gz -C /opt/swift --strip-components=1
   rm /tmp/swift.tar.gz
 
-  # Install required dependencies for Swift 6.2
+  # Install required dependencies for Swift 6.2 on Ubuntu 22.04
   apt-get update > /dev/null 2>&1
   apt-get install -y binutils git gnupg2 libc6-dev libcurl4-openssl-dev libedit2 \
-    libgcc-13-dev libpython3-dev libsqlite3-0 libstdc++-13-dev libxml2-dev \
-    libz3-dev pkg-config tzdata zlib1g-dev > /dev/null 2>&1
+    libgcc-11-dev libpython3-dev libsqlite3-0 libstdc++-11-dev libxml2-dev \
+    libz3-dev pkg-config tzdata zlib1g-dev unzip > /dev/null 2>&1
 
   # Add Swift to PATH
   export PATH="/opt/swift/usr/bin:$PATH"
