@@ -206,9 +206,10 @@ struct ProvidersSettingsView: View {
 
                 Button(action: { withAnimation { self.showAllModels.toggle() } }) {
                     HStack {
-                        Text(self
-                            .showAllModels ? "Hide additional models" :
-                            "Show all \(self.modelManager.availableModels.count) models")
+                        Text(
+                            self
+                                .showAllModels ? "Hide additional models" :
+                                "Show all \(self.modelManager.availableModels.count) models")
                             .font(.caption)
                         Image(systemName: self.showAllModels ? "chevron.up" : "chevron.down")
                             .font(.caption)

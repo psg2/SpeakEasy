@@ -95,8 +95,9 @@ struct LanguagePickerPopover: View {
                                 }
                                 .padding(.horizontal, 10)
                                 .padding(.vertical, 6)
-                                .background(index == self.highlightedIndex ? Color.accentColor.opacity(0.2) : Color
-                                    .clear)
+                                .background(
+                                    index == self.highlightedIndex ? Color.accentColor.opacity(0.2) : Color
+                                        .clear)
                                 .contentShape(Rectangle())
                             }
                             .buttonStyle(.plain)
