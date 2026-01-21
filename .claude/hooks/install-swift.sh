@@ -35,11 +35,11 @@ esac
 
 # Download and install Swift for Ubuntu (sandbox typically runs Ubuntu)
 if [ "$OS" = "linux" ]; then
-  # Use Swift 5.9.2 for Ubuntu 22.04 (adjust version as needed)
-  SWIFT_VERSION="5.9.2"
-  SWIFT_PLATFORM="ubuntu2204"
+  # Use Swift 6.2.3 for Ubuntu 24.04 (matching .swift-version)
+  SWIFT_VERSION="6.2.3"
+  SWIFT_PLATFORM="ubuntu2404"
   SWIFT_PACKAGE="swift-${SWIFT_VERSION}-RELEASE-${SWIFT_PLATFORM}"
-  SWIFT_URL="https://download.swift.org/swift-${SWIFT_VERSION}-release/ubuntu2204/swift-${SWIFT_VERSION}-RELEASE/${SWIFT_PACKAGE}.tar.gz"
+  SWIFT_URL="https://download.swift.org/swift-${SWIFT_VERSION}-release/ubuntu2404/swift-${SWIFT_VERSION}-RELEASE/${SWIFT_PACKAGE}.tar.gz"
 
   echo "Downloading Swift ${SWIFT_VERSION} for Ubuntu..."
 
@@ -52,10 +52,10 @@ if [ "$OS" = "linux" ]; then
   tar xzf /tmp/swift.tar.gz -C /opt/swift --strip-components=1
   rm /tmp/swift.tar.gz
 
-  # Install required dependencies
+  # Install required dependencies for Swift 6.2
   apt-get update > /dev/null 2>&1
-  apt-get install -y binutils git gnupg2 libc6-dev libcurl4 libedit2 \
-    libgcc-9-dev libpython3.8 libsqlite3-0 libstdc++-9-dev libxml2 \
+  apt-get install -y binutils git gnupg2 libc6-dev libcurl4-openssl-dev libedit2 \
+    libgcc-13-dev libpython3-dev libsqlite3-0 libstdc++-13-dev libxml2-dev \
     libz3-dev pkg-config tzdata zlib1g-dev > /dev/null 2>&1
 
   # Add Swift to PATH
@@ -69,6 +69,34 @@ if [ "$OS" = "linux" ]; then
 
   # Verify installation
   echo "Swift installation complete: $(swift --version)"
+
+  # Install swiftformat
+  echo "Installing swiftformat..."
+  if ! command -v swiftformat &> /dev/null; then
+    git clone --depth 1 --branch 0.54.6 https://github.com/nicklockwood/SwiftFormat.git /tmp/SwiftFormat
+    cd /tmp/SwiftFormat
+    swift build -c release
+    cp .build/release/swiftformat /usr/local/bin/
+    cd -
+    rm -rf /tmp/SwiftFormat
+    echo "swiftformat installed: $(swiftformat --version)"
+  else
+    echo "swiftformat already installed: $(swiftformat --version)"
+  fi
+
+  # Install swiftlint
+  echo "Installing swiftlint..."
+  if ! command -v swiftlint &> /dev/null; then
+    SWIFTLINT_VERSION="0.57.1"
+    curl -sL "https://github.com/realm/SwiftLint/releases/download/${SWIFTLINT_VERSION}/swiftlint_linux.zip" -o /tmp/swiftlint.zip
+    unzip -q /tmp/swiftlint.zip -d /tmp/swiftlint
+    mv /tmp/swiftlint/swiftlint /usr/local/bin/
+    chmod +x /usr/local/bin/swiftlint
+    rm -rf /tmp/swiftlint.zip /tmp/swiftlint
+    echo "swiftlint installed: $(swiftlint version)"
+  else
+    echo "swiftlint already installed: $(swiftlint version)"
+  fi
 else
   echo "Unsupported OS: $OS"
   exit 2
