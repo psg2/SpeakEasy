@@ -9,5 +9,17 @@
       "Bash(swift test:*)",
       "Bash(swiftformat:*)"
     ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/install-swift.sh"
+          }
+        ]
+      }
+    ]
   }
 }
