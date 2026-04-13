@@ -114,7 +114,7 @@ jobs:
           echo "**Note:** This is an unsigned build. The quarantine removal step is required because macOS marks downloaded unsigned apps as damaged." >> release_notes.md
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ steps.version.outputs.tag }}
           name: SpeakEasy ${{ steps.version.outputs.tag }}
@@ -129,7 +129,7 @@ jobs:
 
       - name: Upload Artifacts (for workflow_dispatch)
         if: github.event_name == 'workflow_dispatch'
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: SpeakEasy-${{ steps.version.outputs.tag }}
           path: |
